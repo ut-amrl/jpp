@@ -12,8 +12,8 @@ If you use this software in an academic work or find it relevant to your researc
 
 ```
 @inproceedings{ghosh2017joint,
-  doi = {  },
-  pages = {  },
+  url = { https://www.joydeepb.com/Publications/jpp.pdf },
+  pages = { 1026--1031 },
   organization = { IEEE },
   year = { 2017 },
   booktitle = { Intelligent Robots and Systems (IROS), 2017 IEEE/RSJ International Conference on },
@@ -22,7 +22,7 @@ If you use this software in an academic work or find it relevant to your researc
 }
 ```
 
-Link to paper: 
+Link to paper: [https://www.joydeepb.com/Publications/jpp.pdf](https://www.joydeepb.com/Publications/jpp.pdf)
 
 ## Dependencies
 
