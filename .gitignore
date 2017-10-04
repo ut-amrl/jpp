@@ -18,3 +18,5 @@ ROS/jpp/src/jpp/
 ROS/jpp/docs/
 *.dox
 *.wikidoc
+
+scripts/profile_results
