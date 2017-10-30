@@ -11,6 +11,8 @@ ENDIF()
 
 MESSAGE("Build type: " ${ROS_BUILD_TYPE})
 
+set(CMAKE_CXX_FLAGS "-march=native -O3 -Wall")
+
 rosbuild_find_ros_package(dynamic_reconfigure)
 include(${dynamic_reconfigure_PACKAGE_PATH}/cmake/cfgbuild.cmake)
 gencfg()
@@ -33,10 +35,6 @@ find_package(Boost 1.54.0 COMPONENTS system filesystem program_options REQUIRED)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/bin)
 
-set(CMAKE_CXX_FLAGS "-msse3 -fopenmp -Wall -Wextra")
-set(CMAKE_CXX_FLAGS_DEBUG "-g")
-set(CMAKE_CXX_FLAGS_RELEASE "-O3")
-
 include_directories(
   ${DAISY_DESC_INC_DIR}
   ${OpenCV_INCLUDE_DIRS}
@@ -48,4 +46,4 @@ include_directories(
 rosbuild_add_executable(navigation
   src/navigation.cpp
 )
-target_link_libraries(navigation ${JPP_LIBS} "-lconfig -lpopt")
+target_link_libraries(navigation ${JPP_LIBS} config popt)

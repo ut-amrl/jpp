@@ -13,9 +13,8 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/bin)
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Release)
 endif()
-set(CMAKE_CXX_FLAGS "-msse3 -fopenmp -Wall -Wextra")
+set(CMAKE_CXX_FLAGS "-march=native -O3 -Wall")
 set(CMAKE_CXX_FLAGS_DEBUG "-g")
-set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 
 find_package(OpenCV REQUIRED)
 find_package(OpenMP)
@@ -46,10 +45,10 @@ file(GLOB JPP_BIN_FILES
 
 add_library(libjpp SHARED ${DAISY_DESC_SRC_FILES} ${JPP_LIB_FILES})
 set_target_properties(libjpp PROPERTIES OUTPUT_NAME "jpp")
-target_link_libraries(libjpp ${OpenCV_LIBS} ${OpenMP_LIBS} "-lconfig")
+target_link_libraries(libjpp ${OpenCV_LIBS} ${OpenMP_LIBS} config)
 
 add_executable(jpp ${JPP_BIN_FILES})
-target_link_libraries(jpp "-lpopt -lconfig" libjpp)
+target_link_libraries(jpp popt config libjpp)
 
 add_executable(analysis "src/analysis.cc")
-target_link_libraries(analysis "-lpopt -lconfig" libjpp)
+target_link_libraries(analysis popt config libjpp)
