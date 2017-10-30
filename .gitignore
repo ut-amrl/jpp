@@ -20,3 +20,4 @@ ROS/jpp/docs/
 *.wikidoc
 
 scripts/profile_results
+.ycm_extra_conf.py
