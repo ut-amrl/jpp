@@ -11,6 +11,8 @@ int main(int argc, const char** argv) {
   int w = 0;
   int num_imgs = 0;
   
+  clock_t start, end;
+  
   static struct poptOption options[] = {
     { "num_imgs",'n',POPT_ARG_INT,&num_imgs,0,"Number of images to be processed","NUM" },
     { "img_dir",'d',POPT_ARG_STRING,&img_dir,0,"Directory containing image pairs (set if n > 0)","STR" },
@@ -41,6 +43,9 @@ int main(int argc, const char** argv) {
   // Read stereo calibration info
   FileStorage fs = FileStorage(calib_file, FileStorage::READ);
   
+  // JPP instance
+  JPP jpp(fs, cf);
+  
   if (num_imgs == 0) {
     Mat img_left = imread(left_img_file, CV_LOAD_IMAGE_COLOR);
     Mat img_right = imread(right_img_file, CV_LOAD_IMAGE_COLOR);
@@ -50,7 +55,7 @@ int main(int argc, const char** argv) {
     sprintf(rrt_file_prefix, "%s%d", "rrt", 0);
     sprintf(dmap_file, "%s%d.jpg", "dmap", 0);
     
-    JPP jpp(img_left, img_right, fs, cf);
+    jpp.load_images(img_left, img_right);
     
     if (strcmp(output, "astar") == 0) {
       pair< Mat, Mat > vis;
@@ -90,6 +95,7 @@ int main(int argc, const char** argv) {
       }
     }
   } else if (num_imgs > 0) {
+    double total_time = 0;
     for (int i = 1; i <= num_imgs; i++) {
       cout << "Processing pair " << i << endl;
       char left_img_file[100], right_img_file[100];
@@ -103,7 +109,8 @@ int main(int argc, const char** argv) {
       Mat img_left = imread(left_img_file, CV_LOAD_IMAGE_COLOR);
       Mat img_right = imread(right_img_file, CV_LOAD_IMAGE_COLOR);
       
-      JPP jpp(img_left, img_right, fs, cf);
+      start = clock();
+      jpp.load_images(img_left, img_right);
       
       if (strcmp(output, "astar") == 0) {
         pair< Mat, Mat > vis;
@@ -142,7 +149,12 @@ int main(int argc, const char** argv) {
           }
         }
       }
+      end = clock();
+      double secs = ((double) (end - start)) / CLOCKS_PER_SEC;
+      total_time += secs;
+      cout << "Time: " << secs << endl;
     }
+    cout << "Avg time: " << (total_time/(double)num_imgs) << endl; 
   }
   
   config_destroy(cf);

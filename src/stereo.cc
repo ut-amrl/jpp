@@ -5,21 +5,10 @@ Stereo::Stereo()
   _computation_count = 0;
 }
 
-Stereo::Stereo(Mat& l, Mat& r, FileStorage& fs, JPP_Config& config)
+Stereo::Stereo(FileStorage& fs, JPP_Config& config)
 {
   _jpp_config = config;
-  _get_rectification_map(l, r, fs);
-  _computation_count = 0;
-  _obstacleCache = Mat(_img_left.rows, _img_left.cols, CV_8UC1, Scalar(0));
-  _obstacleRangeCache = Mat(_img_left.rows, _img_left.cols, CV_8UC1, Scalar(0));
-  _colCache = Mat(_img_left.rows, _img_left.cols, CV_8UC1, Scalar(0));
-  _disparityMap = Mat(_img_left.rows, _img_left.cols, CV_8UC1, Scalar(0));
-  _confNegCache = Mat(_img_left.rows, _img_left.cols, CV_8UC1, Scalar(0));
-  //_dMapVis = Mat(img_left.rows, img_left.cols, CV_8UC3, Scalar(0,0,0));
-  _descLeftSet = Mat(_img_left.rows, _img_left.cols, CV_8UC1, Scalar(0));
-  _descRightSet = Mat(_img_left.rows, _img_left.cols, CV_8UC1, Scalar(0));
-  //_cacheVis = Mat(_img_left.rows, _img_left.cols, CV_8UC3, Scalar(0,0,0));
-  cvtColor(_img_left, _cacheVis, CV_GRAY2BGR);
+  _init_rectification_map(fs);
   _desc_left = new daisy;
   _desc_right = new daisy;
 }
@@ -46,14 +35,14 @@ Stereo& Stereo::operator=(Stereo& s)
   this->_rmapx = s._rmapx.clone();
   this->_rmapy = s._rmapy.clone();
   this->_T = s._T;
-  this->_obstacleCache = s._obstacleCache.clone();
-  this->_obstacleRangeCache = s._obstacleRangeCache.clone();
-  this->_colCache = s._colCache.clone();
-  this->_confNegCache = s._confNegCache.clone();
-  this->_descLeftCache = s._descLeftCache.clone();
-  this->_descRightCache = s._descRightCache.clone();
-  this->_descLeftSet = s._descRightSet.clone();
-  this->_cacheVis = s._cacheVis.clone();
+  this->_obstacleCache = s._obstacleCache;
+  this->_obstacleRangeCache = s._obstacleRangeCache;
+  this->_colCache = s._colCache;
+  this->_confNegCache = s._confNegCache;
+  this->_descLeftCache = s._descLeftCache;
+  this->_descRightCache = s._descRightCache;
+  this->_descLeftSet = s._descRightSet;
+  this->_cacheVis = s._cacheVis;
   this->_computation_count = s._computation_count;
   this->_desc_left = new daisy(*s._desc_left);
   this->_desc_right = new daisy(*s._desc_right);
@@ -68,6 +57,30 @@ Stereo::~Stereo()
     delete _desc_right;
 }
 
+void Stereo::load_images(const Mat& left, const Mat& right)
+{
+  _rectify_images(left, right);
+  _computation_count = 0;
+  
+  _obstacleCache = vector< int >(_img_left.rows * _img_left.cols, 0);
+  _obstacleRangeCache = vector< int >(_img_left.rows * _img_left.cols, 0);
+  _colCache = vector< int >(_img_left.rows * _img_left.cols, 0);
+  _confNegCache = vector< int >(_img_left.rows * _img_left.cols, 0);
+  _descLeftSet = vector< int >(_img_left.rows * _img_left.cols, 0);
+  _descRightSet = vector< int >(_img_left.rows * _img_left.cols, 0);
+  
+  //_obstacleCache = Mat(_img_left.rows, _img_left.cols, CV_8UC1, Scalar(0));
+  //_obstacleRangeCache = Mat(_img_left.rows, _img_left.cols, CV_8UC1, Scalar(0));
+  //_colCache = Mat(_img_left.rows, _img_left.cols, CV_8UC1, Scalar(0));
+  //_disparityMap = Mat(_img_left.rows, _img_left.cols, CV_8UC1, Scalar(0));
+  //_confNegCache = Mat(_img_left.rows, _img_left.cols, CV_8UC1, Scalar(0));
+  //_dMapVis = Mat(img_left.rows, img_left.cols, CV_8UC3, Scalar(0,0,0));
+  //_descLeftSet = Mat(_img_left.rows, _img_left.cols, CV_8UC1, Scalar(0));
+  //_descRightSet = Mat(_img_left.rows, _img_left.cols, CV_8UC1, Scalar(0));
+  //_cacheVis = Mat(_img_left.rows, _img_left.cols, CV_8UC3, Scalar(0,0,0));
+  cvtColor(_img_left, _cacheVis, CV_GRAY2BGR);
+}
+
 bool Stereo::in_img(int x, int y)
 {
   if (x >= 0 && x < _img_left.cols && y >= 0 && y < _img_left.rows)
@@ -77,18 +90,18 @@ bool Stereo::in_img(int x, int y)
 
 Point Stereo::project_point_cam(const Point3f p, int cam)
 {
-  Mat pt3d = (Mat_<double>(3, 1) << p.x, p.y, p.z);
-  Mat pt3d_cam = _XRINV*(pt3d - _XT);
-  Mat pt3d_cam_hom = (Mat_<double>(4, 1) << pt3d_cam.at<double>(0,0), 
-                      pt3d_cam.at<double>(1,0), pt3d_cam.at<double>(2,0), 1.);
-  Mat img_coord;
-  if (cam == 0)
-    img_coord = _P1 * pt3d_cam_hom;
-  else
-    img_coord = _P2 * pt3d_cam_hom;
   Point imgc;
-  imgc.x = img_coord.at<double>(0,0)/img_coord.at<double>(2,0);
-  imgc.y = img_coord.at<double>(1,0)/img_coord.at<double>(2,0);
+  Eigen::Vector3f pt3d(p.x, p.y, p.z);
+  Eigen::Vector3f pt3d_cam = _cam2robot_R * (pt3d - _cam2robot_T);
+  Eigen::Vector4f pt3d_cam_hom(pt3d_cam(0), pt3d_cam(1), pt3d_cam(2), 1.0);
+  Eigen::Vector3f img_coord;
+  if (cam == 0) {
+    img_coord = _eP1 * pt3d_cam_hom;
+  } else {
+    img_coord = _eP2 * pt3d_cam_hom;
+  }
+  imgc.x = img_coord(0)/img_coord(2);
+  imgc.y = img_coord(1)/img_coord(2);
   return imgc;
 }
 
@@ -128,21 +141,21 @@ double Stereo::desc_cost(Point left, Point right, int w)
     for (int k = -w; k <= w; k++) {
       if (!in_img(left.x+j, left.y+k) || !in_img(right.x+j, right.y+k))
         continue;
-      if ((int)_descLeftSet.at<uchar>(left.y+k,left.x+j) == 1 && 
-          (int)_descRightSet.at<uchar>(right.y+k,right.x+j) == 1) {
-        Mat dl_cache = _descLeftCache.row((left.y+k)*width+(left.x+j));
-        Mat dr_cache = _descRightCache.row((right.y+k)*width+(right.x+j));
-        cost += norm(dl_cache, dr_cache, CV_L1);
+      int idx_l = (left.y+k)*width + left.x+j;
+      int idx_r = (right.y+k)*width + right.x+j;
+      if (_descLeftSet[idx_l] == 1 && 
+          _descRightSet[idx_r] == 1) {
+        cost += norm(_descLeftCache.row(idx_l), _descRightCache.row(idx_r), CV_L1);
         continue;
       }
       float* dl = new float[_desc_left->descriptor_size()];
       float* dr = new float[_desc_right->descriptor_size()];
       _desc_left->get_descriptor(left.y+k, left.x+j, 0, dl);
       _desc_right->get_descriptor(right.y+k, right.x+j, 0, dr);
-      memcpy(_descLeftCache.ptr((left.y+k)*width+(left.x+j)), dl, _desc_left->descriptor_size()*sizeof(float));
-      memcpy(_descRightCache.ptr((right.y+k)*width+(right.x+j)), dr, _desc_right->descriptor_size()*sizeof(float));
-      _descLeftSet.at<uchar>(left.y+k,left.x+j) = 1;
-      _descRightSet.at<uchar>(right.y+k,right.x+j) = 1;
+      memcpy(_descLeftCache.ptr(idx_l), dl, _desc_left->descriptor_size()*sizeof(float));
+      memcpy(_descRightCache.ptr(idx_r), dr, _desc_right->descriptor_size()*sizeof(float));
+      _descLeftSet[idx_l] = 1;
+      _descRightSet[idx_r] = 1;
       for (int zz = 0; zz < _desc_left->descriptor_size(); zz++) {
         cost += fabs(dl[zz] - dr[zz]);
       }
@@ -174,19 +187,20 @@ bool Stereo::conf_positive(const Point3f p)
   if (!in_img(ptl.x,ptl.y) || !in_img(ptr.x,ptr.y)) {
     return false;
   }
-  if ((int)_obstacleCache.at<uchar>(ptl) == 1) // obstacle free
+  int idx = ptl.y * _img_left.cols + ptl.x;
+  if (_obstacleCache[idx] == 1) // obstacle free
     return true;
-  if ((int)_obstacleCache.at<uchar>(ptl) == 2) // obstacle
+  if (_obstacleCache[idx] == 2) // obstacle
     return false;
   
   int w = _jpp_config.SAD_WINDOW_SIZE;
   double cost = desc_cost(ptl, ptr, w);
   cost /= (double)((2*w+1)*(2*w+1));
   if (cost < _jpp_config.CONF_POS_THRESH) {
-    _obstacleCache.at<uchar>(ptl) = 1;
+    _obstacleCache[idx] = 1;
     return true;
   } else {
-    _obstacleCache.at<uchar>(ptl) = 2;
+    _obstacleCache[idx] = 2;
   }
   return false;
 }
@@ -198,27 +212,29 @@ bool Stereo::conf_negative(const Point3f p)
   if (!in_img(ptl.x,ptl.y) || !in_img(ptr.x,ptr.y)) {
     return false;
   }
-  if ((int)_confNegCache.at<uchar>(ptl) == 1) // obstacle free
+  int idx = ptl.y * _img_left.cols + ptl.x;
+  if (_confNegCache[idx] == 1) // obstacle free
     return true;
-  if ((int)_confNegCache.at<uchar>(ptl) == 2) // obstacle
+  if (_confNegCache[idx] == 2) // obstacle
     return false;
   int w = _jpp_config.SAD_WINDOW_SIZE;
   double cost = desc_cost(ptl, ptr, w);
   cost /= (double)((2*w+1)*(2*w+1));
   if (cost > _jpp_config.CONF_NEG_THRESH) {
-    _confNegCache.at<uchar>(ptl) = 1;
+    _confNegCache[idx] = 1;
     return true;
   }
-  _confNegCache.at<uchar>(ptl) = 2;
+  _confNegCache[idx] = 2;
   return false;
 }
 
 bool Stereo::is_obstacle_free_region(const Point3f p)
 {
   Point ptl = project_point_cam(p, 0);
-  if ((int)_obstacleRangeCache.at<uchar>(ptl) == 1) // obstacle free range
+  int idx = ptl.y * _img_left.cols + ptl.x;
+  if (_obstacleRangeCache[idx] == 1) // obstacle free range
     return true;
-  if ((int)_obstacleRangeCache.at<uchar>(ptl) == 2) // obstacle range
+  if (_obstacleRangeCache[idx] == 2) // obstacle range
     return false;
   int count = 0;
   int total_points = 0;
@@ -234,10 +250,10 @@ bool Stereo::is_obstacle_free_region(const Point3f p)
   }
   float ratio = _jpp_config.SPATIAL_FILTER_RATIO;
   if (count > (float)total_points * ratio ) {
-    _obstacleRangeCache.at<uchar>(ptl) = 1;
+    _obstacleRangeCache[idx] = 1;
     return true;
   } else {
-    _obstacleRangeCache.at<uchar>(ptl) = 2;
+    _obstacleRangeCache[idx] = 2;
   }
   return false;
 }
@@ -245,9 +261,10 @@ bool Stereo::is_obstacle_free_region(const Point3f p)
 bool Stereo::is_empty_col(const Point3f p)
 {
   Point ptl = project_point_cam(p, 0);
-  if ((int)_colCache.at<uchar>(ptl) == 1) // obstacle free col
+  int idx = ptl.y * _img_left.cols + ptl.x;
+  if (_colCache[idx] == 1) // obstacle free col
     return true;
-  if ((int)_colCache.at<uchar>(ptl) == 2) // obstacle col
+  if (_colCache[idx] == 2) // obstacle col
     return false;
   float inc = (float)_jpp_config.CONF_NEG_INC/1000.;
   int total = 0;
@@ -266,14 +283,14 @@ bool Stereo::is_empty_col(const Point3f p)
     }
   }
   if (total < 3) {
-    _colCache.at<uchar>(ptl) = 2;
+    _colCache[idx] = 2;
     return false;
   }
   if (match > (float)total * _jpp_config.CONF_NEG_FILTER_RATIO) {
-    _colCache.at<uchar>(ptl) = 1;
+    _colCache[idx] = 1;
     return true;
   }
-  _colCache.at<uchar>(ptl) = 2;
+  _colCache[idx] = 2;
   return false;
 }
 
@@ -329,25 +346,26 @@ void Stereo::jpp_visualizations(Mat& confPos, Mat& confNeg)
 {
   for (int i = 0; i < confPos.cols; i++) {
     for (int j = 0; j < confPos.rows; j++) {
-      if ((int)_obstacleCache.at<uchar>(j,i) == 1) { // obstacle free
-        if (!_jpp_config.CONVEX_WORLD && (int)_colCache.at<uchar>(j,i) == 2) {
+      int idx = j * _img_left.cols + i;
+      if (_obstacleCache[idx] == 1) { // obstacle free
+        if (!_jpp_config.CONVEX_WORLD && _colCache[idx] == 2) {
           circle(confPos,Point(i,j),2,Scalar(0,0,255),-1,8,0);
         } else {
           circle(confPos,Point(i,j),2,Scalar(0,255,0),-1,8,0);
         }
         //cacheVis.at<Vec3b>(j,i) = Vec3b(0,255,0);
       }
-      else if ((int)_obstacleCache.at<uchar>(j,i) == 2) { // obstacle
+      else if (_obstacleCache[idx] == 2) { // obstacle
         circle(confPos,Point(i,j),3,Scalar(0,0,255),-1,8,0);
         //cacheVis.at<Vec3b>(j,i) = Vec3b(0,0,255);
       } else {
         //int col = (int)img_left.at<uchar>(j,i);
         //cacheVis.at<Vec3b>(j,i) = Vec3b(col,col,col);
       }
-      if ((int)_confNegCache.at<uchar>(j,i) == 2) { // obstacle free
+      if (_confNegCache[idx] == 2) { // obstacle free
         circle(confNeg,Point(i,j),1,Scalar(0,200,200),-1,8,0);
       }
-      else if ((int)_confNegCache.at<uchar>(j,i) == 1) { // obstacle
+      else if (_confNegCache[idx] == 1) { // obstacle
         circle(confNeg,Point(i,j),1,Scalar(255,0,255),-1,8,0);
         //cacheVis.at<Vec3b>(j,i) = Vec3b(0,0,255);
       } else {
@@ -389,7 +407,7 @@ Mat Stereo::get_disparity_map()
 
 ///////// PRIVATE FUNCTIONS /////////
 
-void Stereo::_get_rectification_map(Mat& left, Mat& right, FileStorage& fs)
+void Stereo::_init_rectification_map(const FileStorage& fs)
 {
   fs["K1"] >> _K1;
   fs["K2"] >> _K2;
@@ -403,11 +421,28 @@ void Stereo::_get_rectification_map(Mat& left, Mat& right, FileStorage& fs)
   Size calib_img_size = Size(_jpp_config.CALIB_IMG_WIDTH, _jpp_config.CALIB_IMG_HEIGHT);
   Size rect_img_size = Size(_jpp_config.RECT_IMG_WIDTH, _jpp_config.RECT_IMG_HEIGHT);
   
-  _XRINV = _XR.inv();
   stereoRectify(_K1, _D1, _K2, _D2, calib_img_size, _R, Mat(_T), _R1, _R2, _P1, _P2, _Q, 
                 CV_CALIB_ZERO_DISPARITY, 0, rect_img_size, &validRoi[0], &validRoi[1]);
   initUndistortRectifyMap(_K1, _D1, _R1, _P1, rect_img_size, CV_32F, _lmapx, _lmapy);
   initUndistortRectifyMap(_K2, _D2, _R2, _P2, rect_img_size, CV_32F, _rmapx, _rmapy);
+  
+  _XRINV = _XR.inv();
+  _cam2robot_T = Eigen::Vector3f(_XT.at<double>(0,0), _XT.at<double>(1,0), _XT.at<double>(2,0));
+  for (int i = 0; i < 3; i++) {
+    for (int j = 0; j < 3; j++) {
+      _cam2robot_R(i, j) = _XRINV.at<double>(i, j);
+    }
+  }
+  for (int i = 0; i < 3; i++) {
+    for (int j = 0; j < 4; j++) {
+      _eP1(i, j) = _P1.at<double>(i, j);
+      _eP2(i, j) = _P2.at<double>(i, j);
+    }
+  }
+}
+
+void Stereo::_rectify_images(const Mat& left, const Mat& right)
+{
   remap(left, _img_left, _lmapx, _lmapy, cv::INTER_LINEAR);
   remap(right, _img_right, _rmapx, _rmapy, cv::INTER_LINEAR);
   cvtColor(_img_left, _img_left, CV_BGR2GRAY);

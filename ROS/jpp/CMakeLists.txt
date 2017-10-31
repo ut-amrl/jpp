@@ -19,6 +19,7 @@ gencfg()
 
 set(JPP_LIBS ${PROJECT_SOURCE_DIR}/../../lib/libjpp.so)
 
+find_package(Eigen3 REQUIRED)
 find_package(OpenCV REQUIRED)
 set(DAISY_DESC_INC_DIR ${CMAKE_SOURCE_DIR}/../../src/daisy_descriptor/include)
 set(LIBJPP_INC_DIR ${CMAKE_SOURCE_DIR}/../../include)
@@ -40,6 +41,7 @@ include_directories(
   ${OpenCV_INCLUDE_DIRS}
   ${OpenMP_INCLUDE_DIRS}
   ${Boost_INCLUDE_DIRS}
+  ${EIGEN3_INCLUDE_DIR}
   ${LIBJPP_INC_DIR}
 )
 

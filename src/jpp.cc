@@ -5,10 +5,15 @@ JPP::JPP()
 
 }
 
-JPP::JPP(Mat& img_left, Mat& img_right, FileStorage& fs, config_t* cf)
+JPP::JPP(FileStorage& fs, config_t* cf)
 {
   _get_jpp_config(cf);
-  _stereo = new Stereo(img_left, img_right, fs, _jpp_config);
+  _stereo = new Stereo(fs, _jpp_config);
+}
+
+void JPP::load_images(const Mat& left, const Mat& right)
+{
+  _stereo->load_images(left, right);
 }
 
 Mat JPP::get_disparity_map(const char* method, int max_disp, const char* outfile)

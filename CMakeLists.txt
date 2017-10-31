@@ -17,6 +17,7 @@ set(CMAKE_CXX_FLAGS "-march=native -O3 -Wall")
 set(CMAKE_CXX_FLAGS_DEBUG "-g")
 
 find_package(OpenCV REQUIRED)
+find_package(Eigen3 REQUIRED)
 find_package(OpenMP)
 if (OPENMP_FOUND)
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
@@ -29,6 +30,7 @@ include_directories(
   ${OpenCV_INCLUDE_DIRS}
   ${OpenMP_INCLUDE_DIRS}
   ${Boost_INCLUDE_DIRS}
+  ${EIGEN3_INCLUDE_DIR}
   ${JPP_INC_DIR}
 )
 

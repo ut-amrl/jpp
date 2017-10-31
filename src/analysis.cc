@@ -66,6 +66,8 @@ int main(int argc, const char** argv) {
   // Read stereo calibration info
   FileStorage fs = FileStorage(calib_file, FileStorage::READ);
   
+  JPP jpp(fs, cf);
+  
   if (num_imgs == 0) {
     Mat img_left = imread(left_img_file, CV_LOAD_IMAGE_COLOR);
     Mat img_right = imread(right_img_file, CV_LOAD_IMAGE_COLOR);
@@ -75,7 +77,7 @@ int main(int argc, const char** argv) {
     sprintf(rrt_file_prefix, "%s%d", "rrt", 0);
     sprintf(dmap_file, "%s%d.jpg", "dmap", 0);
     
-    jpp = new JPP(img_left, img_right, fs, cf);
+    jpp.load_images(img_left, img_right);
     /*
     int max_disp = 50;
     Mat dmap = jpp->get_disparity_map("spp", max_disp);
@@ -109,11 +111,10 @@ int main(int argc, const char** argv) {
       Mat img_left = imread(left_img_file, CV_LOAD_IMAGE_COLOR);
       Mat img_right = imread(right_img_file, CV_LOAD_IMAGE_COLOR);
       
-      jpp = new JPP(img_left, img_right, fs, cf);
+      jpp.load_images(img_left, img_right);
     }
   }
   
-  delete jpp;
   config_destroy(cf);
   return 0;
 }

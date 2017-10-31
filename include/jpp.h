@@ -12,8 +12,9 @@ private:
   void _get_jpp_config(config_t *cf);
 public:
   JPP();
-  JPP(Mat& img_left, Mat& img_right, FileStorage& fs, config_t *cf);
+  JPP(FileStorage& fs, config_t *cf);
   ~JPP();
+  void load_images(const Mat& left, const Mat& right);
   Mat get_disparity_map(const char* method, int max_disp, const char* outfile = NULL);
   Mat visualize_conf_pos();
   Mat visualize_conf_neg();

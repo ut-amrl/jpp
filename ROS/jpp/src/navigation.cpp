@@ -12,6 +12,7 @@
 #include "jpp.h"
 #include "popt_pp.h"
 
+JPP *jpp_obj;
 JPP_Config jpp_config;
 config_t cfg, *cf;
 FileStorage calib_file;
@@ -31,28 +32,28 @@ void imgCallback(const sensor_msgs::ImageConstPtr& msg_left, const sensor_msgs::
   sprintf(astar_file_prefix, "%s%d", "astar", counter);
   sprintf(rrt_file_prefix, "%s%d", "rrt", counter);
   
-  JPP jpp(img_left, img_right, calib_file, cf);
-  jpp.update_jpp_config(jpp_config);
+  jpp_obj->load_images(img_left, img_right);
+  jpp_obj->update_jpp_config(jpp_config);
   
   if (strcmp(output, "astar") == 0) {
     pair< Mat, Mat > vis;
     if (w == 1)
-      vis = jpp.plan_astar(astar_file_prefix);
+      vis = jpp_obj->plan_astar(astar_file_prefix);
     else
-      vis = jpp.plan_astar();
+      vis = jpp_obj->plan_astar();
     imshow("PATH", vis.first);
     imshow("CONFIDENCE MATCHING", vis.second);
   } else if (strcmp(output, "rrt") == 0) {
     pair< Mat, Mat > vis;
     if (w == 1) 
-      vis = jpp.plan_rrt(rrt_file_prefix);
+      vis = jpp_obj->plan_rrt(rrt_file_prefix);
     else
-      vis = jpp.plan_rrt();
+      vis = jpp_obj->plan_rrt();
     imshow("PATH", vis.first);
     imshow("CONFIDENCE MATCHING", vis.second);
   } else if (strcmp(output, "debug") == 0) {
-    Mat conf_pos = jpp.visualize_conf_pos();
-    Mat conf_neg = jpp.visualize_conf_neg();
+    Mat conf_pos = jpp_obj->visualize_conf_pos();
+    Mat conf_neg = jpp_obj->visualize_conf_neg();
     imshow("CONF POS", conf_pos);
     imshow("CONF NEG", conf_neg);
   }
@@ -118,6 +119,8 @@ int main(int argc, char** argv) {
     return(EXIT_FAILURE);
   }
   jpp_config = JPP_Config(cf);
+  
+  jpp_obj = new JPP(calib_file, cf);
   
   message_filters::Subscriber<sensor_msgs::Image> sub_img_left(nh, left_img_topic, 1);
   message_filters::Subscriber<sensor_msgs::Image> sub_img_right(nh, right_img_topic, 1);

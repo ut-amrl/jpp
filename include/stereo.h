@@ -15,24 +15,29 @@ private:
   Mat _R1, _R2, _K1, _K2, _D1, _D2, _R;
   Mat _lmapx, _lmapy, _rmapx, _rmapy;
   Vec3d _T;
+  Eigen::Matrix3f _cam2robot_R;
+  Eigen::Vector3f _cam2robot_T;
+  Eigen::Matrix< float, 3, 4 > _eP1, _eP2;
   daisy *_desc_left, *_desc_right;
   Mat _disparityMap;
-  Mat _obstacleCache;
-  Mat _obstacleRangeCache;
-  Mat _colCache;
-  Mat _confNegCache;
+  vector< int > _obstacleCache;
+  vector< int > _obstacleRangeCache;
+  vector< int > _colCache;
+  vector< int > _confNegCache;
+  vector< int > _descLeftSet, _descRightSet;
   Mat _descLeftCache, _descRightCache;
-  Mat _descLeftSet, _descRightSet;
   Mat _cacheVis;
   long _computation_count;
   
-  void _get_rectification_map(Mat& left, Mat& right, FileStorage& fs);
+  void _init_rectification_map(const FileStorage& fs);
+  void _rectify_images(const Mat& left, const Mat& right);
   void _compute_dense_descriptors();
 public:
   Stereo();
-  Stereo(Mat& l, Mat& r, FileStorage& fs, JPP_Config& config);
+  Stereo(FileStorage& fs, JPP_Config& config);
   Stereo& operator=(Stereo& s);
   ~Stereo();
+  void load_images(const Mat& left, const Mat& right);
   bool in_img(int x, int y);
   Point project_point_cam(const Point3f p, int cam);
   void init_daisy_descriptors(int rad, int radq, int thq, int histq, int nrm_type);

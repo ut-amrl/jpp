@@ -5,6 +5,7 @@
 #include <libconfig.h>
 #include <opencv2/opencv.hpp>
 #include <omp.h>
+#include <Eigen/Dense>
 #include "daisy/daisy.h"
 
 struct JPP_Config {
