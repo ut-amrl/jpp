@@ -13,8 +13,16 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/bin)
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Release)
 endif()
-set(CMAKE_CXX_FLAGS "-march=native -O3 -Wall")
-set(CMAKE_CXX_FLAGS_DEBUG "-g")
+
+if (CMAKE_VERSION VERSION_LESS "3.1")
+  if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    set (CMAKE_CXX_FLAGS "-std=gnu++11 ${CMAKE_CXX_FLAGS}")
+  endif ()
+else ()
+  set (CMAKE_CXX_STANDARD 11)
+endif ()
+
+set(CMAKE_CXX_FLAGS "-march=native -O3 -Wall ${CMAKE_CXX_FLAGS}")
 
 find_package(OpenCV REQUIRED)
 find_package(Eigen3 REQUIRED)
