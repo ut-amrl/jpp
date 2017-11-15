@@ -121,6 +121,8 @@ pair< Mat, Mat > JPP::plan_astar(const char* outfile)
   planner.setParams(start, end, _jpp_config.MAX_Y, inc, safe_radius, _jpp_config.BOT_HEIGHT, convex_world);
   planner.findPath(_stereo);
   vector< Point > path = planner.getPath();
+  //copy path to planned path:
+  planned_path = path;
   
   // visualizations
   Mat vis_path = _stereo->get_img_left();
@@ -160,6 +162,8 @@ pair< Mat, Mat > JPP::plan_rrt(const char* outfile)
   planner.initRRT(start, end, inc, 500, 0.6, safe_radius, _jpp_config.BOT_HEIGHT, convex_world, _jpp_config);
   planner.findPath(_stereo);
   vector< Point > path = planner.getPath();
+  //copy path to planned path:
+  planned_path = path;
   
   // visualizations
   Mat vis_path = _stereo->get_img_left();
@@ -185,6 +189,12 @@ pair< Mat, Mat > JPP::plan_rrt(const char* outfile)
     imwrite(confPos_file, confPos);
   }
   return make_pair< Mat, Mat >(vis_path, confPos);
+}
+
+//returns vector of points representing the path of either astar or rrt
+vector< Point > JPP::getPath()
+{
+  return planned_path;
 }
 
 void JPP::update_jpp_config(JPP_Config& config)

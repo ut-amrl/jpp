@@ -8,6 +8,7 @@ class JPP {
 private:
   JPP_Config _jpp_config;
   Stereo *_stereo;
+  vector< Point > planned_path;
   
   void _get_jpp_config(config_t *cf);
 public:
@@ -21,6 +22,7 @@ public:
   Mat visualize_empty_cols();
   pair< Mat, Mat > plan_astar(const char* outfile = NULL);
   pair< Mat, Mat > plan_rrt(const char* outfile = NULL);
+  vector< Point > getPath();
   void update_jpp_config(JPP_Config& config);
   vector< double > get_epipolar_costs(Point p, int max_disp);
   void reset();

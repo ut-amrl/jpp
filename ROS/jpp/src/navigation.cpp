@@ -3,11 +3,17 @@
 #include <message_filters/synchronizer.h>
 #include <message_filters/sync_policies/approximate_time.h>
 #include <message_filters/sync_policies/exact_time.h>
+#include <visualization_msgs/Marker.h>
 #include <sensor_msgs/Image.h>
 #include <image_transport/image_transport.h>
 #include <cv_bridge/cv_bridge.h>
 #include <dynamic_reconfigure/server.h>
 #include <jpp/ParamsConfig.h>
+#include <sensor_msgs/Joy.h>
+#include <geometry_msgs/Twist.h>
+#include <geometry_msgs/Pose.h>
+#include <nav_msgs/Odometry.h>
+#include <nav_msgs/Path.h>
 #include <libconfig.h>
 #include "jpp.h"
 #include "popt_pp.h"
@@ -19,6 +25,42 @@ FileStorage calib_file;
 const char* output = "astar";
 int w = 0;
 int counter = 0;
+
+//publishers not in main
+ros::Publisher pub_path;
+
+void update_planned_path(vector< Point > path){
+  //get the jpp generated path
+
+  //define a path message from path to send to path_follower
+  nav_msgs::Path real_path;
+  real_path.header.frame_id = "jackal";
+  real_path.header.stamp = ros::Time::now();
+
+  bool path_valid = false;
+  for(uint32_t i = 0; i < path.size(); i++)
+  {
+    if (path[i].x > jpp_config.START_X)
+      path_valid = true;
+    //need to divide by 1000 to convert from mm to m
+    geometry_msgs::PoseStamped s_pose;
+    s_pose.header = real_path.header;
+    s_pose.pose.position.x = path[i].x / 1000.0;
+    s_pose.pose.position.y = path[i].y / 1000.0;
+    s_pose.pose.position.z = 0;
+    s_pose.pose.orientation.x = 0;
+    s_pose.pose.orientation.y = 0;
+    s_pose.pose.orientation.z = 0;
+    s_pose.pose.orientation.w = 1;
+
+    real_path.poses.push_back(s_pose);
+  }
+
+  if (path_valid)
+  {
+    pub_path.publish(real_path);
+  }
+}
 
 void imgCallback(const sensor_msgs::ImageConstPtr& msg_left, const sensor_msgs::ImageConstPtr& msg_right)
 {
@@ -38,17 +80,29 @@ void imgCallback(const sensor_msgs::ImageConstPtr& msg_left, const sensor_msgs::
   if (strcmp(output, "astar") == 0) {
     pair< Mat, Mat > vis;
     if (w == 1)
+    {
       vis = jpp_obj->plan_astar(astar_file_prefix);
+      update_planned_path(jpp_obj->getPath());
+    }
     else
+    {
       vis = jpp_obj->plan_astar();
+      update_planned_path(jpp_obj->getPath());
+    }
     imshow("PATH", vis.first);
     imshow("CONFIDENCE MATCHING", vis.second);
   } else if (strcmp(output, "rrt") == 0) {
     pair< Mat, Mat > vis;
-    if (w == 1) 
+    if (w == 1)
+    {
       vis = jpp_obj->plan_rrt(rrt_file_prefix);
+      update_planned_path(jpp_obj->getPath());
+    }
     else
+    {
       vis = jpp_obj->plan_rrt();
+      update_planned_path(jpp_obj->getPath());
+    }
     imshow("PATH", vis.first);
     imshow("CONFIDENCE MATCHING", vis.second);
   } else if (strcmp(output, "debug") == 0) {
@@ -87,6 +141,8 @@ int main(int argc, char** argv) {
   ros::init(argc, argv, "jpp_navigation");
   ros::NodeHandle nh;
   image_transport::ImageTransport it(nh);
+
+  pub_path = nh.advertise<nav_msgs::Path>("/jackal/planned_path", 1);
   
   const char* left_img_topic;
   const char* right_img_topic;
