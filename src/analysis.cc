@@ -9,7 +9,6 @@ void compute_epipolar_costs() {
   data_file.open("epipolar_costs.txt");
   data_file << max_disp << endl;
   Mat ground_truth_dmap = jpp->get_disparity_map("spp", max_disp);
-  jpp->reset();
   int start_x = ground_truth_dmap.cols/2 - 50;
   int end_x = ground_truth_dmap.cols/2 + 50;
   int start_y = ground_truth_dmap.rows/2 - 50;

@@ -13,7 +13,7 @@ struct JPP_Config {
   int CALIB_IMG_HEIGHT;
   int RECT_IMG_WIDTH;
   int RECT_IMG_HEIGHT;
-  int DR;
+  double DR;
   int DQ;
   int DT;
   int DH;
@@ -40,7 +40,7 @@ struct JPP_Config {
     config_lookup_int(cf, "calib_img_height", &CALIB_IMG_HEIGHT);
     config_lookup_int(cf, "rect_img_width", &RECT_IMG_WIDTH);
     config_lookup_int(cf, "rect_img_height", &RECT_IMG_HEIGHT);
-    config_lookup_int(cf, "daisy_params.R", &DR);
+    config_lookup_float(cf, "daisy_params.R", &DR);
     config_lookup_int(cf, "daisy_params.Q", &DQ);
     config_lookup_int(cf, "daisy_params.T", &DT);
     config_lookup_int(cf, "daisy_params.H", &DH);

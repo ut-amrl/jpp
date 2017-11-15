@@ -18,6 +18,7 @@ config_t cfg, *cf;
 FileStorage calib_file;
 const char* output = "astar";
 int w = 0;
+int v = 0;
 int counter = 0;
 
 void imgCallback(const sensor_msgs::ImageConstPtr& msg_left, const sensor_msgs::ImageConstPtr& msg_right)
@@ -32,25 +33,31 @@ void imgCallback(const sensor_msgs::ImageConstPtr& msg_left, const sensor_msgs::
   sprintf(astar_file_prefix, "%s%d", "astar", counter);
   sprintf(rrt_file_prefix, "%s%d", "rrt", counter);
   
-  jpp_obj->load_images(img_left, img_right);
   jpp_obj->update_jpp_config(jpp_config);
+  jpp_obj->load_images(img_left, img_right);
   
   if (strcmp(output, "astar") == 0) {
-    pair< Mat, Mat > vis;
-    if (w == 1)
-      vis = jpp_obj->plan_astar(astar_file_prefix);
-    else
-      vis = jpp_obj->plan_astar();
-    imshow("PATH", vis.first);
-    imshow("CONFIDENCE MATCHING", vis.second);
+    vector< Point > path = jpp_obj->plan_astar();
+    if (v == 1) {
+      pair< Mat, Mat > vis;
+      if (w == 1)
+        vis = jpp_obj->visualize_jpp(astar_file_prefix);
+      else
+        vis = jpp_obj->visualize_jpp();
+      imshow("PATH", vis.first);
+      imshow("CONFIDENCE", vis.second);
+    }
   } else if (strcmp(output, "rrt") == 0) {
-    pair< Mat, Mat > vis;
-    if (w == 1) 
-      vis = jpp_obj->plan_rrt(rrt_file_prefix);
-    else
-      vis = jpp_obj->plan_rrt();
-    imshow("PATH", vis.first);
-    imshow("CONFIDENCE MATCHING", vis.second);
+    vector< Point > path = jpp_obj->plan_rrt();
+    if (v == 1) {
+      pair< Mat, Mat > vis;
+      if (w == 1)
+        vis = jpp_obj->visualize_jpp(rrt_file_prefix);
+      else
+        vis = jpp_obj->visualize_jpp();
+      imshow("PATH", vis.first);
+      imshow("CONFIDENCE", vis.second);
+    }
   } else if (strcmp(output, "debug") == 0) {
     Mat conf_pos = jpp_obj->visualize_conf_pos();
     Mat conf_neg = jpp_obj->visualize_conf_neg();
@@ -99,6 +106,7 @@ int main(int argc, char** argv) {
     { "calib_file",'c',POPT_ARG_STRING,&calib_file_name,0,"Stereo calibration file name","STR" },
     { "jpp_config_file",'j',POPT_ARG_STRING,&jpp_config_file,0,"JPP config file name","STR" },
     { "output",'o',POPT_ARG_STRING,&output,0,"Output - astar, rrt, debug","STR" },
+    { "visualize",'v',POPT_ARG_INT,&v,0,"Set v=1 for displaying visualizations","NUM" },
     { "write_files",'w',POPT_ARG_INT,&w,0,"Set w=1 for writing visualizations to files","NUM" },
     POPT_AUTOHELP
     { NULL, 0, 0, NULL, 0, NULL, NULL }
