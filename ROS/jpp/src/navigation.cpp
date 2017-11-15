@@ -19,6 +19,7 @@ FileStorage calib_file;
 const char* output = "astar";
 int w = 0;
 int v = 0;
+int d = 0;
 int counter = 0;
 
 void imgCallback(const sensor_msgs::ImageConstPtr& msg_left, const sensor_msgs::ImageConstPtr& msg_right)
@@ -33,7 +34,9 @@ void imgCallback(const sensor_msgs::ImageConstPtr& msg_left, const sensor_msgs::
   sprintf(astar_file_prefix, "%s%d", "astar", counter);
   sprintf(rrt_file_prefix, "%s%d", "rrt", counter);
   
-  jpp_obj->update_jpp_config(jpp_config);
+  if (d == 1)
+    jpp_obj->update_jpp_config(jpp_config);
+  
   jpp_obj->load_images(img_left, img_right);
   
   if (strcmp(output, "astar") == 0) {
@@ -108,6 +111,7 @@ int main(int argc, char** argv) {
     { "output",'o',POPT_ARG_STRING,&output,0,"Output - astar, rrt, debug","STR" },
     { "visualize",'v',POPT_ARG_INT,&v,0,"Set v=1 for displaying visualizations","NUM" },
     { "write_files",'w',POPT_ARG_INT,&w,0,"Set w=1 for writing visualizations to files","NUM" },
+    { "dynamic_reconfigure",'d',POPT_ARG_INT,&d,0,"Set d=1 for enabling dynamic reconfigure","NUM" },
     POPT_AUTOHELP
     { NULL, 0, 0, NULL, 0, NULL, NULL }
   };
@@ -139,7 +143,6 @@ int main(int argc, char** argv) {
   
   dynamic_reconfigure::Server<jpp::ParamsConfig> server;
   dynamic_reconfigure::Server<jpp::ParamsConfig>::CallbackType f;
-
   f = boost::bind(&paramsCallback, _1, _2);
   server.setCallback(f);
 
