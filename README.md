@@ -147,13 +147,14 @@ The same flags for displaying/writing visualizations can be used for the ROS nod
 
 ```bash
 Usage: navigation [OPTION...]
-  -l, --left_topic=STR          Left image topic name
-  -r, --right_topic=STR         Right image topic name
-  -c, --calib_file=STR          Stereo calibration file name
-  -j, --jpp_config_file=STR     JPP config file name
-  -o, --output=STR              Output - astar, rrt, debug
-  -v, --visualize=NUM           Set v=1 for displaying visualizations
-  -w, --write_files=NUM         Set w=1 for writing visualizations to files
+  -l, --left_topic=STR              Left image topic name
+  -r, --right_topic=STR             Right image topic name
+  -c, --calib_file=STR              Stereo calibration file name
+  -j, --jpp_config_file=STR         JPP config file name
+  -o, --output=STR                  Output - astar, rrt, debug
+  -v, --visualize=NUM               Set v=1 for displaying visualizations
+  -w, --write_files=NUM             Set w=1 for writing visualizations to files
+  -d, --dynamic_reconfigure=NUM     Set d=1 for enabling dynamic reconfigure
 ```
 
 JPP configuration parameters can be changed realtime by using `rqt_reconfigure`:
@@ -161,6 +162,8 @@ JPP configuration parameters can be changed realtime by using `rqt_reconfigure`:
 ```bash
 $ rosrun rqt_reconfigure rqt_reconfigure
 ```
+
+Make sure you set the flag `-d 1` while using dynamic reconfigure.
 
 ## Running JPP on your Datasets
 
