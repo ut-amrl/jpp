@@ -57,9 +57,10 @@ void update_planned_path(vector< Point > path){
 
     real_path.poses.push_back(s_pose);
   }
-
+  ROS_INFO("recieved path");
   if (path_valid)
   {
+    ROS_INFO("published path");
     pub_path.publish(real_path);
   }
 }
@@ -95,6 +96,7 @@ void imgCallback(const sensor_msgs::ImageConstPtr& msg_left, const sensor_msgs::
     }
   } else if (strcmp(output, "rrt") == 0) {
     vector< Point > path = jpp_obj->plan_rrt();
+    update_planned_path(jpp_obj->getPath());
     if (v == 1) {
       pair< Mat, Mat > vis;
       if (w == 1)
