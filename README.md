@@ -100,22 +100,25 @@ $ ./bin/jpp -n [number of pairs] -d [path/to/directory] -c [path/to/stereo/calib
 **Note:** stereo image pairs inside the directory must be named like this: `left1.jpg`, `left2.jpg`, ... , `right1.jpg`, `right2.jpg`, ...
 
 For the example datasets, calibration files are stored in the `calibration/` folder and JPP configurations are stored in the `cfg/` folder. JPP operates on 
-3 output modes (set by the `-o` flag) as of now: `astar`, `rrt`, and `debug` mode. 
+3 output modes (set by the `-o` flag) as of now: `astar`, `rrt`, and `debug` mode. Set the flag `-v 1` for generating visualizations.
 
-Complete usage: jpp [options]
-- `-n, --num_imgs=NUM` (Number of images to be processed)
-- `-d, --img_dir=STR` (Directory containing image pairs, including trailing `/`)
-- `-l, --left_img=STR` (Left image file name)
-- `-r, --right_img=STR` (Right image file name)
-- `-c, --calib_file=STR` (Stereo calibration file name)
-- `-j, --jpp_config_file=STR` (JPP config file name)
-- `-o, --output=STR` (Output mode: [astar, rrt, debug])
-- `-w, --write_files=NUM` (Set `w=1` for writing visualizations to files)
+```bash
+Usage: jpp [OPTION...]
+  -n, --num_imgs=NUM            Number of images to be processed
+  -d, --img_dir=STR             Directory containing image pairs (set if n > 0)
+  -l, --left_img=STR            Left image file name
+  -r, --right_img=STR           Right image file name
+  -c, --calib_file=STR          Stereo calibration file name
+  -j, --jpp_config_file=STR     JPP config file name
+  -o, --output=STR              Output - astar, rrt, debug
+  -v, --visualize=NUM           Set v=1 for displaying visualizations
+  -w, --write_files=NUM         Set w=1 for writing visualizations to files
+```
 
 For example, running JPP on the KITTI dataset in `astar` mode:
 
 ```bash
-$ ./bin/jpp -n 33 -d KITTI/ -c calibration/kitti_2011_09_26.yml -j cfg/kitti.cfg -o astar
+$ ./bin/jpp -n 33 -d KITTI/ -c calibration/kitti_2011_09_26.yml -j cfg/kitti.cfg -o astar -v 1
 ```
 
 |Confidence match visualizations | Path visualization        |
@@ -125,7 +128,7 @@ $ ./bin/jpp -n 33 -d KITTI/ -c calibration/kitti_2011_09_26.yml -j cfg/kitti.cfg
 Running JPP on the AMRL dataset in `rrt` mode:
 
 ```bash
-$ ./bin/jpp -n 158 -d AMRL/ -c calibration/amrl_jackal_webcam_stereo.yml -j cfg/amrl.cfg -o rrt
+$ ./bin/jpp -n 158 -d AMRL/ -c calibration/amrl_jackal_webcam_stereo.yml -j cfg/amrl.cfg -o rrt -v 1
 ```
 
 |Confidence match visualizations | Path visualization        |
@@ -140,19 +143,27 @@ Run the ROS node `navigation`:
 $ rosrun jpp navigation -l [left/image/topic] -r [right/image/topic] -c [path/to/stereo/calibration/file] -j [path/to/jpp/config/file] -o [output_mode]
 ```
 
-Complete usage: navigation [options]
-- `-l, --left_img=STR` (Left image topic name)
-- `-r, --right_img=STR` (Right image topic name)
-- `-c, --calib_file=STR` (Stereo calibration file name)
-- `-j, --jpp_config_file=STR` (JPP config file name)
-- `-o, --output=STR` (Output mode: [astar, rrt, debug])
-- `-w, --write_files=NUM` (Set `w=1` for writing visualizations to files)
+The same flags for displaying/writing visualizations can be used for the ROS node as well.
+
+```bash
+Usage: navigation [OPTION...]
+  -l, --left_topic=STR              Left image topic name
+  -r, --right_topic=STR             Right image topic name
+  -c, --calib_file=STR              Stereo calibration file name
+  -j, --jpp_config_file=STR         JPP config file name
+  -o, --output=STR                  Output - astar, rrt, debug
+  -v, --visualize=NUM               Set v=1 for displaying visualizations
+  -w, --write_files=NUM             Set w=1 for writing visualizations to files
+  -d, --dynamic_reconfigure=NUM     Set d=1 for enabling dynamic reconfigure
+```
 
 JPP configuration parameters can be changed realtime by using `rqt_reconfigure`:
 
 ```bash
 $ rosrun rqt_reconfigure rqt_reconfigure
 ```
+
+Make sure you set the flag `-d 1` while using dynamic reconfigure.
 
 ## Running JPP on your Datasets
 

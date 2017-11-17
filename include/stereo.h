@@ -25,13 +25,13 @@ private:
   vector< int > _colCache;
   vector< int > _confNegCache;
   vector< int > _descLeftSet, _descRightSet;
-  Mat _descLeftCache, _descRightCache;
+  vector< float* > _descLeftCache, _descRightCache;
   Mat _cacheVis;
-  long _computation_count;
   
   void _init_rectification_map(const FileStorage& fs);
   void _rectify_images(const Mat& left, const Mat& right);
   void _compute_dense_descriptors();
+  void _reallocate_cache();
 public:
   Stereo();
   Stereo(FileStorage& fs, JPP_Config& config);
@@ -40,7 +40,7 @@ public:
   void load_images(const Mat& left, const Mat& right);
   bool in_img(int x, int y);
   Point project_point_cam(const Point3f p, int cam);
-  void init_daisy_descriptors(int rad, int radq, int thq, int histq, int nrm_type);
+  void init_daisy_descriptors(double rad, int radq, int thq, int histq, int nrm_type);
   double desc_cost(Point left, Point right, int w);
   double desc_cost_SAD(Point left, Point right, int w);
   bool conf_positive(const Point3f p);

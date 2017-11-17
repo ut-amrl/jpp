@@ -2,7 +2,7 @@
 
 Stereo::Stereo()
 {
-  _computation_count = 0;
+  
 }
 
 Stereo::Stereo(FileStorage& fs, JPP_Config& config)
@@ -11,6 +11,16 @@ Stereo::Stereo(FileStorage& fs, JPP_Config& config)
   _init_rectification_map(fs);
   _desc_left = new daisy;
   _desc_right = new daisy;
+  int res = _jpp_config.RECT_IMG_WIDTH * _jpp_config.RECT_IMG_HEIGHT;
+  _obstacleCache = vector< int >(res, 0);
+  _obstacleRangeCache = vector< int >(res, 0);
+  _colCache = vector< int >(res, 0);
+  _confNegCache = vector< int >(res, 0);
+  _descLeftSet = vector< int >(res, 0);
+  _descRightSet = vector< int >(res, 0);
+  _descLeftCache = vector< float* >(res, 0);
+  _descRightCache = vector< float* >(res, 0);
+  _reallocate_cache();
 }
 
 Stereo& Stereo::operator=(Stereo& s)
@@ -39,11 +49,10 @@ Stereo& Stereo::operator=(Stereo& s)
   this->_obstacleRangeCache = s._obstacleRangeCache;
   this->_colCache = s._colCache;
   this->_confNegCache = s._confNegCache;
-  this->_descLeftCache = s._descLeftCache;
-  this->_descRightCache = s._descRightCache;
+  //this->_descLeftCache = s._descLeftCache;
+  //this->_descRightCache = s._descRightCache;
   this->_descLeftSet = s._descRightSet;
   this->_cacheVis = s._cacheVis;
-  this->_computation_count = s._computation_count;
   this->_desc_left = new daisy(*s._desc_left);
   this->_desc_right = new daisy(*s._desc_right);
   return *this;
@@ -55,28 +64,24 @@ Stereo::~Stereo()
     delete _desc_left;
   if (_desc_right != NULL)
     delete _desc_right;
+  for (int i = 0; i < _img_left.cols * _img_left.rows; i++) {
+    delete[] _descLeftCache[i];
+    delete[] _descRightCache[i];
+  }
 }
 
 void Stereo::load_images(const Mat& left, const Mat& right)
 {
   _rectify_images(left, right);
-  _computation_count = 0;
-  
-  _obstacleCache = vector< int >(_img_left.rows * _img_left.cols, 0);
-  _obstacleRangeCache = vector< int >(_img_left.rows * _img_left.cols, 0);
-  _colCache = vector< int >(_img_left.rows * _img_left.cols, 0);
-  _confNegCache = vector< int >(_img_left.rows * _img_left.cols, 0);
-  _descLeftSet = vector< int >(_img_left.rows * _img_left.cols, 0);
-  _descRightSet = vector< int >(_img_left.rows * _img_left.cols, 0);
-  
-  //_obstacleCache = Mat(_img_left.rows, _img_left.cols, CV_8UC1, Scalar(0));
-  //_obstacleRangeCache = Mat(_img_left.rows, _img_left.cols, CV_8UC1, Scalar(0));
-  //_colCache = Mat(_img_left.rows, _img_left.cols, CV_8UC1, Scalar(0));
+ 
+  fill(_obstacleCache.begin(), _obstacleCache.end(), 0);
+  fill(_obstacleRangeCache.begin(), _obstacleRangeCache.end(), 0);
+  fill(_colCache.begin(), _colCache.end(), 0);
+  fill(_confNegCache.begin(), _confNegCache.end(), 0);
+  fill(_descLeftSet.begin(), _descLeftSet.end(), 0);
+  fill(_descRightSet.begin(), _descRightSet.end(), 0);
   //_disparityMap = Mat(_img_left.rows, _img_left.cols, CV_8UC1, Scalar(0));
-  //_confNegCache = Mat(_img_left.rows, _img_left.cols, CV_8UC1, Scalar(0));
   //_dMapVis = Mat(img_left.rows, img_left.cols, CV_8UC3, Scalar(0,0,0));
-  //_descLeftSet = Mat(_img_left.rows, _img_left.cols, CV_8UC1, Scalar(0));
-  //_descRightSet = Mat(_img_left.rows, _img_left.cols, CV_8UC1, Scalar(0));
   //_cacheVis = Mat(_img_left.rows, _img_left.cols, CV_8UC3, Scalar(0,0,0));
   cvtColor(_img_left, _cacheVis, CV_GRAY2BGR);
 }
@@ -105,7 +110,7 @@ Point Stereo::project_point_cam(const Point3f p, int cam)
   return imgc;
 }
 
-void Stereo::init_daisy_descriptors(int rad, int radq, int thq, int histq, int nrm_type)
+void Stereo::init_daisy_descriptors(double rad, int radq, int thq, int histq, int nrm_type)
 {
   int verbose_level = 0;
   bool disable_interpolation = true;
@@ -115,6 +120,7 @@ void Stereo::init_daisy_descriptors(int rad, int radq, int thq, int histq, int n
   int h = _img_left.rows;
   int w = _img_left.cols;
 
+  _desc_left->release_auxilary();
   _desc_left->reset();
   _desc_left->set_image(imL, h, w);
   _desc_left->verbose(verbose_level);
@@ -122,6 +128,7 @@ void Stereo::init_daisy_descriptors(int rad, int radq, int thq, int histq, int n
   _desc_left->set_normalization(nrm_type);
   _desc_left->initialize_single_descriptor_mode();
   
+  _desc_right->release_auxilary();
   _desc_right->reset();
   _desc_right->set_image(imR, h, w);
   _desc_right->verbose(verbose_level);
@@ -129,8 +136,8 @@ void Stereo::init_daisy_descriptors(int rad, int radq, int thq, int histq, int n
   _desc_right->set_normalization(nrm_type);
   _desc_right->initialize_single_descriptor_mode();
   
-  _descLeftCache.create(_img_left.cols * _img_left.rows, _desc_left->descriptor_size(), CV_32FC1);
-  _descRightCache.create(_img_right.cols * _img_right.rows, _desc_right->descriptor_size(), CV_32FC1);
+  //_descLeftCache = new float*[_img_left.cols * _img_left.rows];
+  //_descRightCache = new float*[_img_right.cols * _img_right.rows];
 }
 
 double Stereo::desc_cost(Point left, Point right, int w)
@@ -143,27 +150,19 @@ double Stereo::desc_cost(Point left, Point right, int w)
         continue;
       int idx_l = (left.y+k)*width + left.x+j;
       int idx_r = (right.y+k)*width + right.x+j;
-      if (_descLeftSet[idx_l] == 1 && 
-          _descRightSet[idx_r] == 1) {
-        cost += norm(_descLeftCache.row(idx_l), _descRightCache.row(idx_r), CV_L1);
-        continue;
+      if (_descLeftSet[idx_l] != 1) {
+        _desc_left->get_descriptor(left.y+k, left.x+j, 0, _descLeftCache[idx_l]);
+        _descLeftSet[idx_l] = 1;
       }
-      float* dl = new float[_desc_left->descriptor_size()];
-      float* dr = new float[_desc_right->descriptor_size()];
-      _desc_left->get_descriptor(left.y+k, left.x+j, 0, dl);
-      _desc_right->get_descriptor(right.y+k, right.x+j, 0, dr);
-      memcpy(_descLeftCache.ptr(idx_l), dl, _desc_left->descriptor_size()*sizeof(float));
-      memcpy(_descRightCache.ptr(idx_r), dr, _desc_right->descriptor_size()*sizeof(float));
-      _descLeftSet[idx_l] = 1;
-      _descRightSet[idx_r] = 1;
+      if (_descRightSet[idx_r] != 1) {
+        _desc_right->get_descriptor(right.y+k, right.x+j, 0, _descRightCache[idx_r]);
+        _descRightSet[idx_r] = 1;
+      }
       for (int zz = 0; zz < _desc_left->descriptor_size(); zz++) {
-        cost += fabs(dl[zz] - dr[zz]);
+        cost += fabs(_descLeftCache[idx_l][zz] - _descRightCache[idx_r][zz]);
       }
-      delete[] dl;
-      delete[] dr;
     }
   }
-  _computation_count++;
   return cost;
 }
 
@@ -414,6 +413,7 @@ void Stereo::blend_images(Mat& src1, Mat& src2, float alpha, Mat& dst)
 void Stereo::update_jpp_config(JPP_Config& config)
 {
   _jpp_config = config;
+  _reallocate_cache();
 }
 
 Mat Stereo::get_img_left()
@@ -480,8 +480,22 @@ void Stereo::_rectify_images(const Mat& left, const Mat& right)
   cvtColor(_img_right, _img_right, CV_BGR2GRAY);
 }
 
+void Stereo::_reallocate_cache()
+{
+  int desc_size = (_jpp_config.DQ * _jpp_config.DT + 1) * _jpp_config.DH;
+  for (int i = 0; i < _jpp_config.RECT_IMG_HEIGHT * _jpp_config.RECT_IMG_WIDTH; i++) {
+    if (_descLeftCache[i])
+      delete[] _descLeftCache[i];
+    _descLeftCache[i] = new float[desc_size];
+    if (_descRightCache[i])
+      delete[] _descRightCache[i];
+    _descRightCache[i] = new float[desc_size];
+  }
+}
+
 void Stereo::_compute_dense_descriptors()
 {
+  /*
   _desc_left->compute_descriptors();
   _desc_left->normalize_descriptors();
   int descSize;
@@ -509,4 +523,5 @@ void Stereo::_compute_dense_descriptors()
   }
   _descLeftSet = Mat(_img_left.rows, _img_left.cols, CV_8UC1, Scalar(1));
   _descRightSet = Mat(_img_left.rows, _img_left.cols, CV_8UC1, Scalar(1));
+  */
 }

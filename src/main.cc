@@ -9,6 +9,7 @@ int main(int argc, const char** argv) {
   const char* img_dir;
   const char* output = "astar";
   int w = 0;
+  int v = 0;
   int num_imgs = 0;
   
   clock_t start, end;
@@ -21,6 +22,7 @@ int main(int argc, const char** argv) {
     { "calib_file",'c',POPT_ARG_STRING,&calib_file,0,"Stereo calibration file name","STR" },
     { "jpp_config_file",'j',POPT_ARG_STRING,&jpp_config_file,0,"JPP config file name","STR" },
     { "output",'o',POPT_ARG_STRING,&output,0,"Output - astar, rrt, debug","STR" },
+    { "visualize",'v',POPT_ARG_INT,&v,0,"Set v=1 for displaying visualizations","NUM" },
     { "write_files",'w',POPT_ARG_INT,&w,0,"Set w=1 for writing visualizations to files","NUM" },
     POPT_AUTOHELP
     { NULL, 0, 0, NULL, 0, NULL, NULL }
@@ -58,29 +60,33 @@ int main(int argc, const char** argv) {
     jpp.load_images(img_left, img_right);
     
     if (strcmp(output, "astar") == 0) {
-      pair< Mat, Mat > vis;
-      if (w == 1) 
-        vis = jpp.plan_astar(astar_file_prefix);
-      else
-        vis = jpp.plan_astar();
-      while (1) {
-        imshow("PATH", vis.first);
-        imshow("CONFIDENCE MATCHING", vis.second);
-        if (waitKey(30) > 0) {
-          break;
+      vector< Point > path = jpp.plan_astar();
+      if (v == 1) {
+        pair< Mat, Mat > vis;
+        if (w == 1)
+          vis = jpp.visualize_jpp(astar_file_prefix);
+        else
+          vis = jpp.visualize_jpp();
+        while (1) {
+          imshow("PATH", vis.first);
+          imshow("CONFIDENCE", vis.second);
+          if (waitKey(30) > 0)
+            break;
         }
       }
     } else if (strcmp(output, "rrt") == 0) {
-      pair< Mat, Mat > vis;
-      if (w == 1) 
-        vis = jpp.plan_rrt(rrt_file_prefix);
-      else
-        vis = jpp.plan_rrt();
-      while (1) {
-        imshow("PATH", vis.first);
-        imshow("CONFIDENCE MATCHING", vis.second);
-        if (waitKey(30) > 0) {
-          break;
+      vector< Point > path = jpp.plan_rrt();
+      if (v == 1) {
+        pair< Mat, Mat > vis;
+        if (w == 1)
+          vis = jpp.visualize_jpp(rrt_file_prefix);
+        else
+          vis = jpp.visualize_jpp();
+        while (1) {
+          imshow("PATH", vis.first);
+          imshow("CONFIDENCE", vis.second);
+          if (waitKey(30) > 0)
+            break;
         }
       }
     } else if (strcmp(output, "debug") == 0) {
@@ -113,29 +119,33 @@ int main(int argc, const char** argv) {
       jpp.load_images(img_left, img_right);
       
       if (strcmp(output, "astar") == 0) {
-        pair< Mat, Mat > vis;
-        if (w == 1) 
-          vis = jpp.plan_astar(astar_file_prefix);
-        else
-          vis = jpp.plan_astar();
-        while (1) {
-          imshow("PATH", vis.first);
-          imshow("CONFIDENCE MATCHING", vis.second);
-          if (waitKey(30) > 0) {
-            break;
+        vector< Point > path = jpp.plan_astar();
+        if (v == 1) {
+          pair< Mat, Mat > vis;
+          if (w == 1)
+            vis = jpp.visualize_jpp(astar_file_prefix);
+          else
+            vis = jpp.visualize_jpp();
+          while (1) {
+            imshow("PATH", vis.first);
+            imshow("CONFIDENCE", vis.second);
+            if (waitKey(30) > 0)
+              break;
           }
         }
       } else if (strcmp(output, "rrt") == 0) {
-        pair< Mat, Mat > vis;
-        if (w == 1) 
-          vis = jpp.plan_rrt(rrt_file_prefix);
-        else
-          vis = jpp.plan_rrt();
-        while (1) {
-          imshow("PATH", vis.first);
-          imshow("CONFIDENCE MATCHING", vis.second);
-          if (waitKey(30) > 0) {
-            break;
+        vector< Point > path = jpp.plan_rrt();
+        if (v == 1) {
+          pair< Mat, Mat > vis;
+          if (w == 1)
+            vis = jpp.visualize_jpp(rrt_file_prefix);
+          else
+            vis = jpp.visualize_jpp();
+          while (1) {
+            imshow("PATH", vis.first);
+            imshow("CONFIDENCE", vis.second);
+            if (waitKey(30) > 0)
+              break;
           }
         }
       } else if (strcmp(output, "debug") == 0) {
