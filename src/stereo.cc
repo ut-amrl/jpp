@@ -205,6 +205,21 @@ bool Stereo::conf_positive(const Point3f p)
   return false;
 }
 
+//checks for confident positive in column specified by z_start and z_end
+/*bool Stereo::conf_positive(const Point3f p, float z_start, float z_end)
+{
+  //niave implementation:
+  float inc = (float)_jpp_config.CONF_NEG_INC/1000.;
+  Point3f search_point = p;
+  for(float z = z_start; z < z_end; z+=inc)
+  {
+    search_point.z = z;
+    if (conf_positive(search_point))
+      return true;
+  }
+  return false;
+}*/
+
 bool Stereo::conf_negative(const Point3f p)
 {
   Point ptl = project_point_cam(p, 0);
@@ -296,12 +311,11 @@ bool Stereo::is_empty_col(const Point3f p)
 
 bool Stereo::is_bot_clear(const Point3f p, float safe_radius, float inc, bool col_check)
 {
-  //return _conf_positive(p);
   bool isFree = true;
   for (float y = -safe_radius; y <= safe_radius; y += inc) {
     for (float x = 0; x <= safe_radius; x += inc) {
       Point3f q(p.x+x,p.y+y,0.0);
-      if (!conf_positive(q)) {
+      if (!conf_positive(q)) { //conf_positive(q) conf_positive(q, 0.0, 0.05)
         isFree = false;
         break;
       } else {
@@ -310,6 +324,23 @@ bool Stereo::is_bot_clear(const Point3f p, float safe_radius, float inc, bool co
             isFree = false;
             break;
           }
+        }
+      }
+    }
+  }
+  return isFree;
+}
+
+bool Stereo::is_bot_clear_blind_ground(const Point3f p, float safe_radius, float inc, bool col_check)
+{
+  bool isFree = true;
+  for (float y = -safe_radius; y <= safe_radius; y += inc) {
+    for (float x = 0; x <= safe_radius; x += inc) {
+      Point3f q(p.x+x,p.y+y,0.0);
+      if (col_check) {
+        if (!is_empty_col(q)) {
+          isFree = false;
+          break;
         }
       }
     }

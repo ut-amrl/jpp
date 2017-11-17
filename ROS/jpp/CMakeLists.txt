@@ -49,3 +49,8 @@ rosbuild_add_executable(navigation
   src/navigation.cpp
 )
 target_link_libraries(navigation ${JPP_LIBS} config popt)
+
+rosbuild_add_executable(path_follower
+  src/path_follower.cpp
+)
+target_link_libraries(path_follower ${JPP_LIBS} "-lconfig -lpopt")

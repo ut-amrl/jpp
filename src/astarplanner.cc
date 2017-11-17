@@ -8,7 +8,8 @@ AStarPlanner::AStarPlanner(JPP_Config& conf)
 
 bool AStarPlanner::inGrid(Point p)
 {
-  return (p.x >= start.p.x && p.x <= max_x && p.y >= -max_y && p.y <= max_y);
+  //return (p.x >= start.p.x && p.x <= max_x && p.y >= -max_y && p.y <= max_y);
+  return (p.x >= 0 && p.x <= max_x && p.y >= -max_y && p.y <= max_y);
 }
 
 float AStarPlanner::L1Dist(Point p, Point q)
@@ -33,7 +34,13 @@ bool cw)
   start.g = start.h = 0;
   start.f = 0;
   start.id = 0;
-  grid_id[0] = s;
+
+  //pach
+  Point realStart;
+  realStart.x = 0;
+  realStart.y = 0;
+
+  grid_id[0] = realStart; //s;
   parent[0] = -1;
   end.p = e;
   safe_radius = r;
@@ -50,8 +57,15 @@ Point AStarPlanner::clCoord(Point p)
 
 void AStarPlanner::findPath(Stereo* stereo)
 {
-  open_list.insert(start);
-  node closestnode = start;
+  node robotCenter;
+  robotCenter.p.x = 0;
+  robotCenter.p.y = 0;
+  robotCenter.g = 0;
+  robotCenter.f = 0;
+  robotCenter.id = 0;
+
+  open_list.insert(robotCenter);//start
+  node closestnode = robotCenter;//start
   closestnode.f = 1e9;
   float mindist = 1e9;
   multiset< node >::iterator ito;
@@ -95,8 +109,14 @@ void AStarPlanner::findPath(Stereo* stereo)
       // obstacle check
       Point3f pt3d = Point3f((float)cur_pt.x/1000.,(float)cur_pt.y/1000.,0);
       
-      if (!stereo->is_bot_clear(pt3d, (float)safe_radius/1000., (float)inc/1000., !convex_world))
+      //obstical check within grid
+      if (cur_pt.x >= start.p.x && !stereo->is_bot_clear(pt3d, (float)safe_radius/1000., (float)inc/1000., !convex_world))
         continue;
+      //obstical check blind to ground area before grid
+      /*else if (//sqrt(cur_pt.x*cur_pt.x + cur_pt.y*cur_pt.y) > (float)safe_radius && 
+        !stereo->is_bot_clear_blind_ground(pt3d, (float)safe_radius/1000., (float)inc/1000., !convex_world))
+        continue;*/
+      
       // create successor node
       node suc;
       suc.p = cur_pt;
