@@ -57,10 +57,8 @@ void update_planned_path(vector< Point > path){
 
     real_path.poses.push_back(s_pose);
   }
-  ROS_INFO("recieved path");
   if (path_valid)
   {
-    ROS_INFO("published path");
     pub_path.publish(real_path);
   }
 }

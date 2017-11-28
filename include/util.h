@@ -60,6 +60,33 @@ struct JPP_Config {
     config_lookup_int(cf, "max_x", &MAX_X);
     config_lookup_int(cf, "max_y", &MAX_Y);
     config_lookup_bool(cf, "convex_world", &CONVEX_WORLD);
+    //diagnostic
+    /*
+    printf("CALIB_IMG_WIDTH: %d\n", CALIB_IMG_WIDTH);
+    printf("CALIB_IMG_HEIGHT: %d\n", CALIB_IMG_HEIGHT);
+    printf("RECT_IMG_WIDTH: %d\n", RECT_IMG_WIDTH);
+    printf("RECT_IMG_HEIGHT: %d\n", RECT_IMG_HEIGHT);
+    printf("DR: %lf\n", DR);
+    printf("DQ: %d\n", DQ);
+    printf("DT: %d\n", DT);
+    printf("DH: %d\n", DH);
+    printf("BOT_LENGTH: %d\n", BOT_LENGTH);
+    printf("BOT_WIDTH: %d\n", BOT_WIDTH);
+    printf("BOT_HEIGHT: %d\n", BOT_HEIGHT);
+    printf("GRID_SIZE: %d\n", GRID_SIZE);
+    printf("CONF_POS_THRESH: %f\n", CONF_POS_THRESH);
+    printf("CONF_NEG_THRESH: %f\n", CONF_NEG_THRESH);
+    printf("SAD_WINDOW_SIZE: %d\n", SAD_WINDOW_SIZE);
+    printf("SPATIAL_FILTER_WINDOW: %d\n", SPATIAL_FILTER_WINDOW);
+    printf("SPATIAL_FILTER_INC: %d\n", SPATIAL_FILTER_INC);
+    printf("SPATIAL_FILTER_RATIO: %f\n", SPATIAL_FILTER_RATIO);
+    printf("CONF_NEG_INC: %d\n", CONF_NEG_INC);
+    printf("CONF_NEG_FILTER_RATIO: %f\n", CONF_NEG_FILTER_RATIO);
+    printf("START_X: %d\n", START_X);
+    printf("MAX_X: %d\n", MAX_X);
+    printf("MAX_Y: %d\n", MAX_Y);
+    printf("CONVEX_WORLD: %d\n", CONVEX_WORLD);
+    */
   }
 };
 
