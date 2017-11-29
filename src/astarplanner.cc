@@ -113,9 +113,8 @@ void AStarPlanner::findPath(Stereo* stereo)
       if (cur_pt.x >= start.p.x && !stereo->is_bot_clear(pt3d, (float)safe_radius/1000., (float)inc/1000., !convex_world))
         continue;
       //obstical check blind to ground area before grid
-      /*else if (//sqrt(cur_pt.x*cur_pt.x + cur_pt.y*cur_pt.y) > (float)safe_radius && 
-        !stereo->is_bot_clear_blind_ground(pt3d, (float)safe_radius/1000., (float)inc/1000., !convex_world))
-        continue;*/
+      //else if (!stereo->is_bot_clear_blind_ground(pt3d, (float)safe_radius/1000., (float)inc/1000., !convex_world))
+        //continue;
       
       // create successor node
       node suc;

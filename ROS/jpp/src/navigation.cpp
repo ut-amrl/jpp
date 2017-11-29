@@ -39,11 +39,11 @@ void update_planned_path(vector< Point > path){
   real_path.header.frame_id = "jackal";
   real_path.header.stamp = ros::Time::now();
 
-  bool path_valid = false;
+  bool path_invalid = true;
   for(uint32_t i = 0; i < path.size(); i++)
   {
     if (path[i].x > jpp_config.START_X)
-      path_valid = true;
+      path_invalid = false;
     //need to divide by 1000 to convert from mm to m
     geometry_msgs::PoseStamped s_pose;
     s_pose.header = real_path.header;
@@ -57,10 +57,24 @@ void update_planned_path(vector< Point > path){
 
     real_path.poses.push_back(s_pose);
   }
-  if (path_valid)
+
+  if (path_invalid)//if the path is not valid stop, doing this by making the path just the 0 pose
   {
-    pub_path.publish(real_path);
+    geometry_msgs::PoseStamped s_pose;
+    s_pose.header = real_path.header;
+    s_pose.pose.position.x = 0;
+    s_pose.pose.position.y = 0;
+    s_pose.pose.position.z = 0;
+    s_pose.pose.orientation.x = 0;
+    s_pose.pose.orientation.y = 0;
+    s_pose.pose.orientation.z = 0;
+    s_pose.pose.orientation.w = 1;
+
+    real_path.poses.clear();
+    real_path.poses.push_back(s_pose);
   }
+
+  pub_path.publish(real_path);
 }
 
 void imgCallback(const sensor_msgs::ImageConstPtr& msg_left, const sensor_msgs::ImageConstPtr& msg_right)

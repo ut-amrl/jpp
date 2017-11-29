@@ -296,16 +296,22 @@ bool Stereo::is_empty_col(const Point3f p)
       match++;
     }
   }
-  if (total < 3) {
+  /*if (total < 3) {
     _colCache[idx] = 2;
     return false;
+  }*/
+  if (total == 0)
+  {
+    _colCache[idx] = 1;
+    return true;
   }
-  if (match > (float)total * _jpp_config.CONF_NEG_FILTER_RATIO) {
+  if ((float)match > (float)total * _jpp_config.CONF_NEG_FILTER_RATIO) {
     _colCache[idx] = 1;
     return true;
   }
   _colCache[idx] = 2;
   return false;
+  return true;
 }
 
 bool Stereo::is_bot_clear(const Point3f p, float safe_radius, float inc, bool col_check)
@@ -333,14 +339,14 @@ bool Stereo::is_bot_clear(const Point3f p, float safe_radius, float inc, bool co
 bool Stereo::is_bot_clear_blind_ground(const Point3f p, float safe_radius, float inc, bool col_check)
 {
   bool isFree = true;
-  for (float y = -safe_radius; y <= safe_radius; y += inc) {
-    for (float x = 0; x <= safe_radius; x += inc) {
-      Point3f q(p.x+x,p.y+y,0.0);
-      if (col_check) {
-        if (!is_empty_col(q)) {
-          isFree = false;
-          break;
-        }
+  if (col_check) {
+    for (float y = -safe_radius; y <= safe_radius; y += inc) {
+      for (float x = 0; x <= safe_radius; x += inc) {
+        Point3f q(p.x+x,p.y+y,0.0);
+          if (!is_empty_col(q)) {
+            isFree = false;
+            break;
+          }
       }
     }
   }
