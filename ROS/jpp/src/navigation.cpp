@@ -10,11 +10,13 @@
 #include <dynamic_reconfigure/server.h>
 #include <jpp/ParamsConfig.h>
 #include <sensor_msgs/Joy.h>
+#include <sensor_msgs/PointCloud.h>
 #include <geometry_msgs/Twist.h>
 #include <geometry_msgs/Pose.h>
 #include <nav_msgs/Odometry.h>
 #include <nav_msgs/Path.h>
 #include <libconfig.h>
+#include <Eigen/Dense>
 #include "jpp.h"
 #include "popt_pp.h"
 
@@ -30,6 +32,7 @@ int counter = 0;
 
 //publishers not in main
 ros::Publisher pub_path;
+ros::Publisher pub_point_cloud;
 
 void update_planned_path(vector< Point > path){
   //get the jpp generated path
@@ -77,6 +80,25 @@ void update_planned_path(vector< Point > path){
   pub_path.publish(real_path);
 }
 
+void update_surface(vector< Point3f > points)
+{
+  sensor_msgs::PointCloud point_cloud;
+  point_cloud.header.frame_id = "jackal";
+  point_cloud.header.stamp = ros::Time::now();
+
+  for (int i = 0; i < points.size(); i++)
+  {
+    geometry_msgs::Point32 p;
+    p.x = points[i].x;
+    p.y = points[i].y;
+    p.z = points[i].z;
+
+    point_cloud.points.push_back(p);
+  }
+
+  pub_point_cloud.publish(point_cloud);
+}
+
 void imgCallback(const sensor_msgs::ImageConstPtr& msg_left, const sensor_msgs::ImageConstPtr& msg_right)
 {
   counter++;
@@ -97,6 +119,7 @@ void imgCallback(const sensor_msgs::ImageConstPtr& msg_left, const sensor_msgs::
   if (strcmp(output, "astar") == 0) {
     vector< Point > path = jpp_obj->plan_astar();
     update_planned_path(jpp_obj->getPath());
+    update_surface(jpp_obj->get_surface_points());
     if (v == 1) {
       pair< Mat, Mat > vis;
       if (w == 1)
@@ -109,6 +132,7 @@ void imgCallback(const sensor_msgs::ImageConstPtr& msg_left, const sensor_msgs::
   } else if (strcmp(output, "rrt") == 0) {
     vector< Point > path = jpp_obj->plan_rrt();
     update_planned_path(jpp_obj->getPath());
+    update_surface(jpp_obj->get_surface_points());
     if (v == 1) {
       pair< Mat, Mat > vis;
       if (w == 1)
@@ -156,6 +180,7 @@ int main(int argc, char** argv) {
   image_transport::ImageTransport it(nh);
 
   pub_path = nh.advertise<nav_msgs::Path>("/jackal/planned_path", 1);
+  pub_point_cloud = nh.advertise<sensor_msgs::PointCloud>("/jackal/surface", 1);
   
   const char* left_img_topic;
   const char* right_img_topic;

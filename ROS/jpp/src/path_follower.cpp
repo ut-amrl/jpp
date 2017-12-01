@@ -222,7 +222,7 @@ void safeNavigate(const sensor_msgs::JoyConstPtr& msg) {
   } else {
     rot_vel = min(desired_rot_vel, rot_vel + rot_accel);
   }
-  ROS_INFO("real V: %f, W: %f", forward_vel, forward_vel);
+  ROS_INFO("real V: %f, W: %f", forward_vel, rot_vel);
   geometry_msgs::Twist vel_msg;
   vel_msg.linear.x = forward_vel;
   vel_msg.angular.z = rot_vel;

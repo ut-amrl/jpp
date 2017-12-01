@@ -173,6 +173,11 @@ vector< Point > JPP::getPath()
   return _path;
 }
 
+vector< Point3f > JPP::get_surface_points()
+{
+  return _stereo->get_surface_points();
+}
+
 void JPP::update_jpp_config(JPP_Config& config)
 {
   _jpp_config = config;

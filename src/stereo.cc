@@ -21,6 +21,12 @@ Stereo::Stereo(FileStorage& fs, JPP_Config& config)
   _descLeftCache = vector< float* >(res, 0);
   _descRightCache = vector< float* >(res, 0);
   _reallocate_cache();
+
+  //surface is twice as big due to the unknown radius of the robot.
+  surface = vector< vector< surface_p > >(((_jpp_config.MAX_X - _jpp_config.START_X)/_jpp_config.GRID_SIZE + 1)*2,
+    vector< surface_p >(((_jpp_config.MAX_Y*2)/_jpp_config.GRID_SIZE + 1)*2, surface_p(false, false, 0)) );
+
+  printf("surface-x: %d, surface-y: %d\n", surface.size(), surface[0].size());
 }
 
 Stereo& Stereo::operator=(Stereo& s)
@@ -55,6 +61,7 @@ Stereo& Stereo::operator=(Stereo& s)
   this->_cacheVis = s._cacheVis;
   this->_desc_left = new daisy(*s._desc_left);
   this->_desc_right = new daisy(*s._desc_right);
+  this->surface = s.surface;
   return *this;
 }
 
@@ -68,6 +75,48 @@ Stereo::~Stereo()
     delete[] _descLeftCache[i];
     delete[] _descRightCache[i];
   }
+}
+
+//finds the point in the surface for the given index
+Point3f Stereo::surface_point(int i, int j)
+{
+  Point3f p;
+  p.x = (float)(_jpp_config.GRID_SIZE*i + _jpp_config.START_X)/1000.0;
+  p.y = (float)((_jpp_config.GRID_SIZE*j) - _jpp_config.MAX_Y*2)/1000.0;
+  p.z = surface[i][j].z;
+  return p;
+}
+
+//finds the index in the surface for the given point
+void Stereo::surface_index(const Point3f p, int *i, int *j)
+{
+  *i = ((int)round(p.x*1000.0) - _jpp_config.START_X)/_jpp_config.GRID_SIZE;
+  //_jpp_config.MAX_Y is multiplied by 2 because of unknown robot radius
+  *j = ((int)round(p.y*1000.0) + _jpp_config.MAX_Y*2)/_jpp_config.GRID_SIZE;
+
+  //diagnostics:
+  /*
+  //printf("in x: %f, y: %f, z: %f\n", p.x, p.y, p.z);
+  Point3f out_p = surface_point(*i, *j);
+  //printf("ou5 x: %f, y: %f, z: %f\n", out_p.x, out_p.y, out_p.z);
+
+  if (p.x != out_p.x)
+  {
+    printf("invalid!\n");
+    printf("p.x*1000.0 %f\n", p.x*1000.0);
+    printf("(int)(p.x*1000.0) %d\n", (int)round(p.x*1000.0));
+    printf("((int)(p.x*1000.0) - _jpp_config.START_X) %d\n", ((int)(p.x*1000.0) - _jpp_config.START_X));
+    printf("((int)(p.x*1000.0) - _jpp_config.START_X)/_jpp_config.GRID_SIZE %d\n", ((int)(p.x*1000.0) - _jpp_config.START_X)/_jpp_config.GRID_SIZE);
+    printf("i is: %d\n", *i);
+    printf("_jpp_config.GRID_SIZE*i %d\n", _jpp_config.GRID_SIZE*(*i));
+    printf("_jpp_config.GRID_SIZE*i + _jpp_config.START_X %d\n", _jpp_config.GRID_SIZE*(*i) + _jpp_config.START_X);
+    printf("(float)(_jpp_config.GRID_SIZE*i + _jpp_config.START_X) %f\n", (float)(_jpp_config.GRID_SIZE*(*i) + _jpp_config.START_X));
+    printf("(float)(_jpp_config.GRID_SIZE*i + _jpp_config.START_X)/1000.0 %f\n");
+    printf("p.x is: %f\n", p.x);
+    printf("in  x: %f, y: %f, z: %f\n", p.x, p.y, p.z);
+    printf("out x: %f, y: %f, z: %f\n", out_p.x, out_p.y, out_p.z);
+  }
+  */
 }
 
 void Stereo::load_images(const Mat& left, const Mat& right)
@@ -84,6 +133,10 @@ void Stereo::load_images(const Mat& left, const Mat& right)
   //_dMapVis = Mat(img_left.rows, img_left.cols, CV_8UC3, Scalar(0,0,0));
   //_cacheVis = Mat(_img_left.rows, _img_left.cols, CV_8UC3, Scalar(0,0,0));
   cvtColor(_img_left, _cacheVis, CV_GRAY2BGR);
+  for(int i = 0; i < surface.size(); i++)
+  {
+    fill(surface[i].begin(), surface[i].end(), surface_p(false, false, 0));
+  }
 }
 
 bool Stereo::in_img(int x, int y)
@@ -205,19 +258,37 @@ bool Stereo::conf_positive(const Point3f p)
 }
 
 //checks for confident positive in column specified by z_start and z_end
-/*bool Stereo::conf_positive(const Point3f p, float z_start, float z_end)
+bool Stereo::conf_positive(const Point3f p, float z_start, float z_end)
 {
-  //niave implementation:
-  float inc = (float)_jpp_config.CONF_NEG_INC/1000.;
+  int ix, iy;
+  surface_index(p, &ix, &iy);
+
+  surface[ix][iy].discovered = true;
+  float inc = (float)_jpp_config.CONF_NEG_INC/1000.;//make dedicated config param
+
+
   Point3f search_point = p;
-  for(float z = z_start; z < z_end; z+=inc)
+
+  //middle out search since the best result woud be in the middle of the range
+  float z = z_start + (z_end - z_start)/2;
+  int steps = abs(round((z_end - z_start)/inc));
+  float dir = -1.0;
+  for(int i = 0; i < steps; i++)
   {
+    z += inc*float(i)*dir;
+    dir *= -1.0;
     search_point.z = z;
     if (conf_positive(search_point))
+    {
+      surface[ix][iy].valid = true;
+      surface[ix][iy].z = z;
       return true;
+    }
   }
+
+  surface[ix][iy].valid = false;
   return false;
-}*/
+}
 
 bool Stereo::conf_negative(const Point3f p)
 {
@@ -240,6 +311,55 @@ bool Stereo::conf_negative(const Point3f p)
   }
   _confNegCache[idx] = 2;
   return false;
+}
+
+void Stereo::calc_z_range(const Point3f p, float *z_min, float *z_max)
+{
+  vector< pair< surface_p, surface_p > > neighbors;
+
+  int x, y;
+  surface_index(p, &x, &y);
+
+  neighbors.push_back(pair< surface_p, surface_p >(surface[x + 1][y], surface[x + 2][y])); // probably need to check that indecies are valid
+  neighbors.push_back(pair< surface_p, surface_p >(surface[x - 1][y], surface[x - 2][y])); // but since the surface was doubled it is probably
+  neighbors.push_back(pair< surface_p, surface_p >(surface[x][y + 1], surface[x][y + 2])); // not a problem.
+  neighbors.push_back(pair< surface_p, surface_p >(surface[x][y - 1], surface[x][y - 2]));
+
+  *z_min = -0.2; //default range should be specified in config file
+  *z_max = 0.2;
+  for (int i = 0; i < neighbors.size(); i++)
+  {
+    if (neighbors[i].first.discovered && neighbors[i].first.valid && //should consider discovered but not valid
+      neighbors[i].second.discovered && neighbors[i].second.valid)
+    {
+      float z1 = neighbors[i].first.z;
+      float z2 = neighbors[i].second.z;
+
+      float theta = atan((z1 - z2)/(_jpp_config.GRID_SIZE/1000.0));
+      float t = 1.0; //should be in config file;
+      float a = theta + t;
+      float b = theta - t;
+
+      float new_z_max = z1 + (_jpp_config.GRID_SIZE/1000.0)*tan(a);
+      float new_z_min = z1 + (_jpp_config.GRID_SIZE/1000.0)*tan(b);
+
+      if (*z_max > new_z_max)
+      {
+        *z_max = new_z_max;
+      }
+      if (*z_min < new_z_min)
+      {
+        *z_min = new_z_min;
+      }
+      //check that zmin and zmax don't overlap
+      if (*z_min >= *z_max)
+      {
+        *z_max = 0;
+        *z_min = 0;
+        return;
+      }
+    }
+  }
 }
 
 bool Stereo::is_obstacle_free_region(const Point3f p)
@@ -296,15 +416,15 @@ bool Stereo::is_empty_col(const Point3f p)
       match++;
     }
   }
-  /*if (total < 3) {
+  if (total < 3) {
     _colCache[idx] = 2;
     return false;
-  }*/
-  if (total == 0)
+  }
+  /*if (total == 0)
   {
     _colCache[idx] = 1;
     return true;
-  }
+  }*/
   if ((float)match > (float)total * _jpp_config.CONF_NEG_FILTER_RATIO) {
     _colCache[idx] = 1;
     return true;
@@ -320,7 +440,7 @@ bool Stereo::is_bot_clear(const Point3f p, float safe_radius, float inc, bool co
   for (float y = -safe_radius; y <= safe_radius; y += inc) {
     for (float x = 0; x <= safe_radius; x += inc) {
       Point3f q(p.x+x,p.y+y,0.0);
-      if (!conf_positive(q)) { //conf_positive(q) conf_positive(q, 0.0, 0.05)
+      if (!conf_positive(q, -0.05, 0.05)) { //conf_positive(q) conf_positive(q, -0.05, 0.05)
         isFree = false;
         break;
       } else {
@@ -351,6 +471,20 @@ bool Stereo::is_bot_clear_blind_ground(const Point3f p, float safe_radius, float
     }
   }
   return isFree;
+}
+
+vector < Point3f > Stereo::get_surface_points(){
+  vector< Point3f > surface_points;
+  for (int i = 0; i < surface.size(); i++){
+    for (int j = 0; j < surface[i].size(); j++)
+    {
+      if (surface[i][j].discovered && surface[i][j].valid)
+      {
+        surface_points.push_back(surface_point(i, j));
+      }
+    }
+  }
+  return surface_points;
 }
 
 int Stereo::compute_disparity(Point p, int ndisp, int w)

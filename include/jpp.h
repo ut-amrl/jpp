@@ -25,6 +25,7 @@ public:
   vector< Point > plan_rrt();
   pair< Mat, Mat > visualize_jpp(const char* outfile = NULL);
   vector< Point > getPath();
+  vector< Point3f > get_surface_points();
   void update_jpp_config(JPP_Config& config);
   vector< double > get_epipolar_costs(Point p, int max_disp);
   Mat get_img_left();
