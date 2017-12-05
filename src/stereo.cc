@@ -81,7 +81,7 @@ Stereo::~Stereo()
 Point3f Stereo::surface_point(int i, int j)
 {
   Point3f p;
-  p.x = (float)(_jpp_config.GRID_SIZE*i + _jpp_config.START_X)/1000.0;
+  p.x = (float)(_jpp_config.GRID_SIZE*i + _jpp_config.START_X/2)/1000.0;
   p.y = (float)((_jpp_config.GRID_SIZE*j) - _jpp_config.MAX_Y*2)/1000.0;
   p.z = surface[i][j].z;
   return p;
@@ -90,15 +90,16 @@ Point3f Stereo::surface_point(int i, int j)
 //finds the index in the surface for the given point
 void Stereo::surface_index(const Point3f p, int *i, int *j)
 {
-  *i = ((int)round(p.x*1000.0) - _jpp_config.START_X)/_jpp_config.GRID_SIZE;
+  //_jpp_config.START_X is divided by 2 because of calc_z_range() checking points before START_X
+  *i = ((int)round(p.x*1000.0) - _jpp_config.START_X/2)/_jpp_config.GRID_SIZE;
   //_jpp_config.MAX_Y is multiplied by 2 because of unknown robot radius
   *j = ((int)round(p.y*1000.0) + _jpp_config.MAX_Y*2)/_jpp_config.GRID_SIZE;
 
   //diagnostics:
   /*
-  //printf("in x: %f, y: %f, z: %f\n", p.x, p.y, p.z);
+  printf("in x: %f, y: %f, z: %f\n", p.x, p.y, p.z);
   Point3f out_p = surface_point(*i, *j);
-  //printf("ou5 x: %f, y: %f, z: %f\n", out_p.x, out_p.y, out_p.z);
+  printf("ou5 x: %f, y: %f, z: %f\n", out_p.x, out_p.y, out_p.z);
 
   if (p.x != out_p.x)
   {
@@ -327,6 +328,7 @@ void Stereo::calc_z_range(const Point3f p, float *z_min, float *z_max)
 
   *z_min = -0.2; //default range should be specified in config file
   *z_max = 0.2;
+  //printf("default: z_min: %f, z_max: %f\n", *z_min, *z_max);
   for (int i = 0; i < neighbors.size(); i++)
   {
     if (neighbors[i].first.discovered && neighbors[i].first.valid && //should consider discovered but not valid
@@ -360,6 +362,7 @@ void Stereo::calc_z_range(const Point3f p, float *z_min, float *z_max)
       }
     }
   }
+  //printf("z_min: %f, z_max: %f\n", *z_min, *z_max);
 }
 
 bool Stereo::is_obstacle_free_region(const Point3f p)
@@ -440,7 +443,9 @@ bool Stereo::is_bot_clear(const Point3f p, float safe_radius, float inc, bool co
   for (float y = -safe_radius; y <= safe_radius; y += inc) {
     for (float x = 0; x <= safe_radius; x += inc) {
       Point3f q(p.x+x,p.y+y,0.0);
-      if (!conf_positive(q, -0.05, 0.05)) { //conf_positive(q) conf_positive(q, -0.05, 0.05)
+      float z_min, z_max;
+      calc_z_range(q, &z_min, &z_max);
+      if (!conf_positive(q, z_min, z_max)) { //conf_positive(q) conf_positive(q, -0.05, 0.05)
         isFree = false;
         break;
       } else {
