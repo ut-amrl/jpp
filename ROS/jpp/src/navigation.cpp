@@ -27,6 +27,7 @@ int w = 0;
 int v = 0;
 int d = 0;
 int counter = 0;
+geometry_msgs::Pose global_waypoint;
 
 //publishers not in main
 ros::Publisher pub_path;
@@ -59,16 +60,29 @@ void update_planned_path(vector< Point > path){
   }
 
   if (path_invalid)//if the path is not valid stop, doing this by making the path just the 0 pose
-  {
+  {//if invalid turn left or right
     geometry_msgs::PoseStamped s_pose;
     s_pose.header = real_path.header;
     s_pose.pose.position.x = 0;
-    s_pose.pose.position.y = 0;
+    //s_pose.pose.position.y = 0;
     s_pose.pose.position.z = 0;
     s_pose.pose.orientation.x = 0;
     s_pose.pose.orientation.y = 0;
     s_pose.pose.orientation.z = 0;
     s_pose.pose.orientation.w = 1;
+
+    if (real_path.poses[0].pose.position.y > 0.0)
+    {
+      s_pose.pose.position.y = 1.0;//turn left
+    }
+    else if (real_path.poses[0].pose.position.y < 0.0)
+    {
+      s_pose.pose.position.y = -1.0;//turn right
+    }
+    else
+    {
+      s_pose.pose.position.y = 0.0;//stop
+    }
 
     real_path.poses.clear();
     real_path.poses.push_back(s_pose);
@@ -95,7 +109,7 @@ void imgCallback(const sensor_msgs::ImageConstPtr& msg_left, const sensor_msgs::
   jpp_obj->load_images(img_left, img_right);
   
   if (strcmp(output, "astar") == 0) {
-    vector< Point > path = jpp_obj->plan_astar();
+    vector< Point > path = jpp_obj->plan_astar(global_waypoint.position.x, global_waypoint.position.y);
     update_planned_path(jpp_obj->getPath());
     if (v == 1) {
       pair< Mat, Mat > vis;
@@ -127,6 +141,11 @@ void imgCallback(const sensor_msgs::ImageConstPtr& msg_left, const sensor_msgs::
   waitKey(30);
 }
 
+void waypointCallback(const geometry_msgs::Pose& pose)
+{
+  global_waypoint = pose;
+}
+
 void paramsCallback(jpp::ParamsConfig &conf, uint32_t level) {
   jpp_config.DR = conf.DR;
   jpp_config.DQ = conf.DQ;
@@ -156,11 +175,21 @@ int main(int argc, char** argv) {
   image_transport::ImageTransport it(nh);
 
   pub_path = nh.advertise<nav_msgs::Path>("/jackal/planned_path", 1);
+  ros::Subscriber way_point_sub = nh.subscribe("/jpp/waypoint", 1, waypointCallback);
   
   const char* left_img_topic;
   const char* right_img_topic;
   const char* calib_file_name;
   const char* jpp_config_file;
+
+  //intitulize global way point
+  global_waypoint.position.x = (float)jpp_config.MAX_X/1000.0;
+  global_waypoint.position.y = 0;
+  global_waypoint.position.z = 0;
+  global_waypoint.orientation.x = 0;
+  global_waypoint.orientation.y = 0;
+  global_waypoint.orientation.z = 0;
+  global_waypoint.orientation.w = 1;
   
   static struct poptOption options[] = {
     { "left_topic",'l',POPT_ARG_STRING,&left_img_topic,0,"Left image topic name","STR" },

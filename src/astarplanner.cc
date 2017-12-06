@@ -46,6 +46,45 @@ bool cw)
   safe_radius = r;
   convex_world = cw;
   bot_height = bh;
+
+  Point goal = e;
+  if (goal.x > _config.MAX_X) //when past grid
+  {
+    //project goal to edge of planner grid
+    int y_intercept = (int)round(((float)goal.y*(float)_config.MAX_X)/(float)goal.x);
+    if (y_intercept > -_config.MAX_Y && y_intercept < _config.MAX_Y)
+    {
+      end.p.x = _config.MAX_X;
+      end.p.y = y_intercept;
+    }
+    else
+    {
+      if (goal.y > 0)
+      {
+        path.push_back(Point(0, _config.MAX_X));
+      }
+      else
+      {
+        path.push_back(Point(0, -_config.MAX_X));
+      }
+    }
+  }
+  else if (goal.x >= _config.START_X && goal.x <= _config.MAX_X && // when in grid
+    goal.y >= -_config.MAX_Y && goal.y <= _config.MAX_Y)
+  {
+    //do nothing
+  }
+  else 
+  {
+    if (goal.y > 0)
+    {
+      path.push_back(Point(0, _config.MAX_X));
+    }
+    else
+    {
+      path.push_back(Point(0, -_config.MAX_X));
+    }
+  }
 }
 
 Point AStarPlanner::clCoord(Point p)
@@ -57,6 +96,11 @@ Point AStarPlanner::clCoord(Point p)
 
 void AStarPlanner::findPath(Stereo* stereo)
 {
+  if (path.size() > 0)//end point was not valid see constructor
+  {
+    return;
+  }
+
   node robotCenter;
   robotCenter.p.x = 0;
   robotCenter.p.y = 0;

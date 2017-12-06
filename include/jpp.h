@@ -22,6 +22,7 @@ public:
   Mat visualize_conf_neg();
   Mat visualize_empty_cols();
   vector< Point > plan_astar();
+  vector< Point > plan_astar(float x, float y);
   vector< Point > plan_rrt();
   pair< Mat, Mat > visualize_jpp(const char* outfile = NULL);
   vector< Point > getPath();
