@@ -261,8 +261,19 @@ bool Stereo::conf_positive(const Point3f p)
 //checks for confident positive in column specified by z_start and z_end
 bool Stereo::conf_positive(const Point3f p, float z_start, float z_end)
 {
+  //check that zmin and zmax don't overlap
+  if (z_start >= z_end)
+  {
+    return false;
+  }
+
   int ix, iy;
   surface_index(p, &ix, &iy);
+
+  if (surface[ix][iy].discovered == true)
+  {
+    return surface[ix][iy].valid;
+  }
 
   surface[ix][iy].discovered = true;
   float inc = (float)_jpp_config.CONF_NEG_INC/1000.;//make dedicated config param
@@ -271,12 +282,15 @@ bool Stereo::conf_positive(const Point3f p, float z_start, float z_end)
   Point3f search_point = p;
 
   //middle out search since the best result woud be in the middle of the range
-  float z = z_start + (z_end - z_start)/2;
-  int steps = abs(round((z_end - z_start)/inc));
+  //printf("z_start: %f, z_end: %f\n", z_start, z_end);
+  float z = z_start + (z_end - z_start)/2.0;
+  //printf("z: %f\n", z);
+  int steps = abs((int)round((z_end - z_start)/inc));
+  //printf("steps: %d\n", steps);
   float dir = -1.0;
-  for(int i = 0; i < steps; i++)
+  for(int i = 0; i <= steps; i++)
   {
-    z += inc*float(i)*dir;
+    z += inc*((float)i)*dir;
     dir *= -1.0;
     search_point.z = z;
     if (conf_positive(search_point))
@@ -326,8 +340,8 @@ void Stereo::calc_z_range(const Point3f p, float *z_min, float *z_max)
   neighbors.push_back(pair< surface_p, surface_p >(surface[x][y + 1], surface[x][y + 2])); // not a problem.
   neighbors.push_back(pair< surface_p, surface_p >(surface[x][y - 1], surface[x][y - 2]));
 
-  *z_min = -0.2; //default range should be specified in config file
-  *z_max = 0.2;
+  *z_min = -0.5; //default range should be specified in config file
+  *z_max = 0.5;
   //printf("default: z_min: %f, z_max: %f\n", *z_min, *z_max);
   for (int i = 0; i < neighbors.size(); i++)
   {
@@ -338,9 +352,29 @@ void Stereo::calc_z_range(const Point3f p, float *z_min, float *z_max)
       float z2 = neighbors[i].second.z;
 
       float theta = atan((z1 - z2)/(_jpp_config.GRID_SIZE/1000.0));
-      float t = 1.0; //should be in config file;
+      float t = 0.1; //should be in config file;
       float a = theta + t;
       float b = theta - t;
+
+      float piOver2 = 3.14159/2.0;
+
+      if(a > piOver2)
+      {
+        a = piOver2;
+      }
+      else if(a < -piOver2)
+      {
+        a = -piOver2;
+      }
+
+      if(b > piOver2)
+      {
+        b = piOver2;
+      }
+      else if(b < -piOver2)
+      {
+        b = -piOver2;
+      }
 
       float new_z_max = z1 + (_jpp_config.GRID_SIZE/1000.0)*tan(a);
       float new_z_min = z1 + (_jpp_config.GRID_SIZE/1000.0)*tan(b);
@@ -356,13 +390,19 @@ void Stereo::calc_z_range(const Point3f p, float *z_min, float *z_max)
       //check that zmin and zmax don't overlap
       if (*z_min >= *z_max)
       {
-        *z_max = 0;
-        *z_min = 0;
+        //printf("overlap!\n");
+        //printf("z1: %f, z2: %f\n", z1, z2);
+        //printf("theta: %f\n", theta);
+        //printf("a: %f, b: %f\n", a, b);
+        //printf("tan(a): %f, tan(b): %f\n", tan(a), tan(b));
+        //printf("new_z_max: %f, new_z_min: %f\n", new_z_max, new_z_min);
         return;
       }
     }
   }
   //printf("z_min: %f, z_max: %f\n", *z_min, *z_max);
+  //*z_min = -0.15; //default range should be specified in config file
+  //*z_max = 0.15;
 }
 
 bool Stereo::is_obstacle_free_region(const Point3f p)
