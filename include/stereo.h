@@ -33,6 +33,7 @@ private:
     bool valid;
     bool discovered;
     float z;
+    vector< pair< Point3f, float > > confpos;
     _surface_p(bool v, bool d, float zed)
     {
       valid = v;
@@ -64,13 +65,16 @@ public:
   double desc_cost_SAD(Point left, Point right, int w);
   bool conf_positive(const Point3f p);
   bool conf_positive(const Point3f p, float z_start, float z_end);
+  bool find_surface(const Point3f p, float z_min, float z_max);
   bool conf_negative(const Point3f p);
   void calc_z_range(const Point3f p, float *z_min, float *z_max);
+  bool orientation_valid(Eigen::MatrixXf *points);
   bool is_obstacle_free_region(const Point3f p);
   bool is_empty_col(const Point3f p);
   bool is_bot_clear(const Point3f p, float safe_radius, float inc, bool col_check);
   bool is_bot_clear_blind_ground(const Point3f p, float safe_radius, float inc, bool col_check);
   vector < Point3f > get_surface_points();
+  vector < pair< Point3f, float > > get_surface_checks();
   int compute_disparity(Point p, int ndisp, int w);
   void compute_disparity_map(int ndisp, int w);
   void jpp_visualizations(Mat& confPos, Mat& confNeg);

@@ -178,6 +178,11 @@ vector< Point3f > JPP::get_surface_points()
   return _stereo->get_surface_points();
 }
 
+vector< pair< Point3f, float > > JPP::get_surface_checks()
+{
+  return _stereo->get_surface_checks();
+}
+
 void JPP::update_jpp_config(JPP_Config& config)
 {
   _jpp_config = config;
