@@ -28,17 +28,53 @@ private:
   vector< float* > _descLeftCache, _descRightCache;
   Mat _cacheVis;
   //2-dim array of surface_p struct to keep track of confpos checks
+  typedef struct _confident_z
+  {
+    float z;
+    double cost;
+  }confident_z;
+
   typedef struct _surface_p
   {
     bool valid;
     bool discovered;
     float z;
+    float filtered_z;
+    vector< confident_z > confident_Zvalues;
+    vector< confident_z > confident_Zvalues2;
     vector< pair< Point3f, float > > confpos;
     _surface_p(bool v, bool d, float zed)
     {
       valid = v;
       discovered = d;
       z = zed;
+    }
+    void insert_confident_z(confident_z cz)
+    {
+      //niave imiplementation::
+      for(vector< confident_z >::iterator it = confident_Zvalues.begin(); it != confident_Zvalues.end(); ++it)
+      {
+        if (cz.cost < (*it).cost)
+        {
+          confident_Zvalues.insert(it, cz);
+          return;
+        }
+      }
+      confident_Zvalues.push_back(cz);
+
+      //use binary search and insert
+      /*if (confident_Zvalues.empty())
+      {
+        confident_Zvalues.push_back(cp);
+      }
+      else
+      {
+        int index = (confident_Zvalues.size() - 1)/2;
+        while(true)
+        {
+          if (index + 1 > confident_Zvalues.size() - 1 || confident_Zvalues[index + 1].cost //something
+        }
+      }*/
     }
   }surface_p;
 
@@ -66,6 +102,8 @@ public:
   bool conf_positive(const Point3f p);
   bool conf_positive(const Point3f p, float z_start, float z_end);
   bool find_surface(const Point3f p, float z_min, float z_max);
+  Point3f median_filter(int ix, int iy, int neighbor_window_size);
+  Point3f average_filter(int ix, int iy, int neighbor_window_size);
   bool conf_negative(const Point3f p);
   void calc_z_range(const Point3f p, float *z_min, float *z_max);
   bool orientation_valid(Eigen::MatrixXf *points);

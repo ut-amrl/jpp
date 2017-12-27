@@ -90,8 +90,8 @@ void update_surface(vector< Point3f > points)
   for (int i = 0; i < points.size(); i++)
   {
     //filter for one slice
-    if (round(points[i].y * 1000.0) != 0.0)
-      continue;
+    //if (round(points[i].y * 1000.0) != 0.0)
+      //continue;
     geometry_msgs::Point32 p;
     p.x = points[i].x;
     p.y = points[i].y;
