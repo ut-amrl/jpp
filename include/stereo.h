@@ -27,6 +27,7 @@ private:
   vector< int > _descLeftSet, _descRightSet;
   vector< float* > _descLeftCache, _descRightCache;
   Mat _cacheVis;
+  int num_disparity_checks;
   //2-dim array of surface_p struct to keep track of confpos checks
   typedef struct _confident_z
   {
@@ -38,16 +39,23 @@ private:
   {
     bool valid;
     bool discovered;
+    bool filtered;
+    bool slope_change_calculated;
     float z;
     float filtered_z;
+    float slope_change;
     vector< confident_z > confident_Zvalues;
     vector< confident_z > confident_Zvalues2;
     vector< pair< Point3f, float > > confpos;
-    _surface_p(bool v, bool d, float zed)
+    _surface_p(bool v, bool d, bool f, bool scc, float zed, float fzed, float sc)
     {
       valid = v;
       discovered = d;
+      filtered = f;
+      slope_change_calculated = scc;
       z = zed;
+      filtered_z = fzed;
+      slope_change = sc;
     }
     void insert_confident_z(confident_z cz)
     {
@@ -91,6 +99,8 @@ public:
   Stereo(FileStorage& fs, JPP_Config& config);
   Stereo& operator=(Stereo& s);
   ~Stereo();
+  void start_disparity_counter();
+  int get_disparity_count();
   Point3f surface_point(int i, int j);
   void surface_index(const Point3f p, int *i, int *j);
   void load_images(const Mat& left, const Mat& right);
@@ -101,17 +111,21 @@ public:
   double desc_cost_SAD(Point left, Point right, int w);
   bool conf_positive(const Point3f p);
   bool conf_positive(const Point3f p, float z_start, float z_end);
-  bool find_surface(const Point3f p, float z_min, float z_max);
+  bool find_surface(const Point3f p, float range);
+  bool find_surface(int ix, int iy, float range);
   Point3f median_filter(int ix, int iy, int neighbor_window_size);
   Point3f average_filter(int ix, int iy, int neighbor_window_size);
+  float change_in_slope(Point3f p);
+  float change_in_slope(int ix, int iy);
   bool conf_negative(const Point3f p);
   void calc_z_range(const Point3f p, float *z_min, float *z_max);
   bool orientation_valid(Eigen::MatrixXf *points);
   bool is_obstacle_free_region(const Point3f p);
   bool is_empty_col(const Point3f p);
   bool is_bot_clear(const Point3f p, float safe_radius, float inc, bool col_check);
+  float roughness(const Point3f p, float safe_radius, float inc, bool col_check);
   bool is_bot_clear_blind_ground(const Point3f p, float safe_radius, float inc, bool col_check);
-  vector < Point3f > get_surface_points();
+  vector < pair< Point3f, float > > get_surface_points();
   vector < pair< Point3f, float > > get_surface_checks();
   int compute_disparity(Point p, int ndisp, int w);
   void compute_disparity_map(int ndisp, int w);

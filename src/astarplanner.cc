@@ -110,8 +110,18 @@ void AStarPlanner::findPath(Stereo* stereo)
       Point3f pt3d = Point3f((float)cur_pt.x/1000.,(float)cur_pt.y/1000.,0);
       
       //obstical check within grid
-      if (cur_pt.x >= start.p.x && !stereo->is_bot_clear(pt3d, (float)safe_radius/1000., (float)inc/1000., !convex_world))
-        continue;
+      float roughness = 0;
+      if (cur_pt.x >= start.p.x)
+      {
+        roughness = stereo->roughness(pt3d, (float)safe_radius/1000., (float)inc/1000., !convex_world);
+        //printf("roughness: %f\n", roughness);
+        if (roughness == -1)
+        {
+          continue;
+        }
+      }
+      //if (cur_pt.x >= start.p.x && !stereo->is_bot_clear(pt3d, (float)safe_radius/1000., (float)inc/1000., !convex_world))
+        //continue;
       //obstical check blind to ground area before grid
       //else if (!stereo->is_bot_clear_blind_ground(pt3d, (float)safe_radius/1000., (float)inc/1000., !convex_world))
         //continue;

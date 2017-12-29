@@ -139,6 +139,15 @@ vector< Point > JPP::plan_rrt()
   return _path;
 }
 
+void JPP::start_disparity_counter()
+{
+  _stereo->start_disparity_counter();
+}
+int JPP::get_disparity_count()
+{
+  _stereo->get_disparity_count();
+}
+
 pair< Mat, Mat > JPP::visualize_jpp(const char* outfile)
 {
   Mat vis_path = _stereo->get_img_left();
@@ -173,7 +182,7 @@ vector< Point > JPP::getPath()
   return _path;
 }
 
-vector< Point3f > JPP::get_surface_points()
+vector< pair< Point3f, float > > JPP::get_surface_points()
 {
   return _stereo->get_surface_points();
 }

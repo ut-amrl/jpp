@@ -81,11 +81,14 @@ void update_planned_path(vector< Point > path){
   pub_path.publish(real_path);
 }
 
-void update_surface(vector< Point3f > points)
+void update_surface(vector< pair< Point3f, float > > points)
 {
   sensor_msgs::PointCloud point_cloud;
   point_cloud.header.frame_id = "jackal";
   point_cloud.header.stamp = ros::Time::now();
+
+  sensor_msgs::ChannelFloat32 c;
+  c.name = "intensity";
 
   for (int i = 0; i < points.size(); i++)
   {
@@ -93,12 +96,16 @@ void update_surface(vector< Point3f > points)
     //if (round(points[i].y * 1000.0) != 0.0)
       //continue;
     geometry_msgs::Point32 p;
-    p.x = points[i].x;
-    p.y = points[i].y;
-    p.z = points[i].z;
+    p.x = points[i].first.x;
+    p.y = points[i].first.y;
+    p.z = points[i].first.z;
 
     point_cloud.points.push_back(p);
+
+    c.values.push_back(points[i].second);
   }
+
+  point_cloud.channels.push_back(c);
 
   pub_surface_point_cloud.publish(point_cloud);
 }
@@ -115,8 +122,8 @@ void update_surface_checks(vector< pair< Point3f, float > > confpos_points)
   for (int i = 0; i < confpos_points.size(); i++)
   {
     //filter for one slice
-    if (round(confpos_points[i].first.y * 1000.0) != 0.0)
-      continue;
+    //if (round(confpos_points[i].first.y * 1000.0) != 0.0)
+      //continue;
     geometry_msgs::Point32 p;
     p.x = confpos_points[i].first.x;
     p.y = confpos_points[i].first.y;
@@ -150,7 +157,12 @@ void imgCallback(const sensor_msgs::ImageConstPtr& msg_left, const sensor_msgs::
   jpp_obj->load_images(img_left, img_right);
   
   if (strcmp(output, "astar") == 0) {
+    jpp_obj->start_disparity_counter();
     vector< Point > path = jpp_obj->plan_astar();
+    printf("jpp num_disparity_checks: %d\n", jpp_obj->get_disparity_count());
+    //jpp_obj->start_disparity_counter();
+    //jpp_obj->get_disparity_map("blah", 5, NULL);
+    //printf("spp num_disparity_checks: %d\n", jpp_obj->get_disparity_count());
     update_planned_path(jpp_obj->getPath());
     update_surface(jpp_obj->get_surface_points());
     update_surface_checks(jpp_obj->get_surface_checks());

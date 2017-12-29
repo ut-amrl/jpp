@@ -23,9 +23,11 @@ public:
   Mat visualize_empty_cols();
   vector< Point > plan_astar();
   vector< Point > plan_rrt();
+  void start_disparity_counter();
+  int get_disparity_count();
   pair< Mat, Mat > visualize_jpp(const char* outfile = NULL);
   vector< Point > getPath();
-  vector< Point3f > get_surface_points();
+  vector< pair< Point3f, float > > get_surface_points();
   vector< pair< Point3f, float > > get_surface_checks();
   void update_jpp_config(JPP_Config& config);
   vector< double > get_epipolar_costs(Point p, int max_disp);
