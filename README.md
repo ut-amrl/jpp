@@ -12,6 +12,7 @@ If you use this software in an academic work or find it relevant to your researc
 
 ```
 @inproceedings{ghosh2017joint,
+  doi = { 10.1109/IROS.2017.8202271 },
   url = { https://www.joydeepb.com/Publications/jpp.pdf },
   pages = { 1026--1031 },
   organization = { IEEE },
