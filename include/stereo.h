@@ -39,22 +39,26 @@ private:
   {
     bool valid;
     bool discovered;
-    bool filtered;
+    bool median_filtered;
+    bool layer_median_filtered;
     bool slope_change_calculated;
     float z;
-    float filtered_z;
+    float median_filtered_z;
+    float layer_median_filtered_z;
     float slope_change;
     vector< confident_z > confident_Zvalues;
     vector< confident_z > confident_Zvalues2;
     vector< pair< Point3f, float > > confpos;
-    _surface_p(bool v, bool d, bool f, bool scc, float zed, float fzed, float sc)
+    _surface_p(bool v, bool d, bool mf, bool lmf, bool scc, float zed, float mfzed, float lmfzed, float sc)
     {
       valid = v;
       discovered = d;
-      filtered = f;
+      median_filtered = mf;
+      layer_median_filtered = lmf;
       slope_change_calculated = scc;
       z = zed;
-      filtered_z = fzed;
+      median_filtered_z = mfzed;
+      layer_median_filtered_z = lmfzed;
       slope_change = sc;
     }
     void insert_confident_z(confident_z cz)
@@ -114,7 +118,7 @@ public:
   bool find_surface(const Point3f p, float range);
   bool find_surface(int ix, int iy, float range);
   Point3f median_filter(int ix, int iy, int neighbor_window_size);
-  Point3f average_filter(int ix, int iy, int neighbor_window_size);
+  Point3f layer_median_filter(int ix, int iy, int neighbor_window_size);
   float change_in_slope(Point3f p);
   float change_in_slope(int ix, int iy);
   bool conf_negative(const Point3f p);

@@ -17,6 +17,8 @@
 #include <nav_msgs/Path.h>
 #include <libconfig.h>
 #include <Eigen/Dense>
+#include <iostream>
+#include <fstream>
 #include "jpp.h"
 #include "popt_pp.h"
 
@@ -29,6 +31,8 @@ int w = 0;
 int v = 0;
 int d = 0;
 int counter = 0;
+int print_counter = 0;
+ofstream data_log;
 
 //publishers not in main
 ros::Publisher pub_path;
@@ -159,10 +163,29 @@ void imgCallback(const sensor_msgs::ImageConstPtr& msg_left, const sensor_msgs::
   if (strcmp(output, "astar") == 0) {
     jpp_obj->start_disparity_counter();
     vector< Point > path = jpp_obj->plan_astar();
-    printf("jpp num_disparity_checks: %d\n", jpp_obj->get_disparity_count());
-    //jpp_obj->start_disparity_counter();
-    //jpp_obj->get_disparity_map("blah", 5, NULL);
-    //printf("spp num_disparity_checks: %d\n", jpp_obj->get_disparity_count());
+    int disparity_count = jpp_obj->get_disparity_count();
+    printf("jpp num_disparity_checks: %d, ", disparity_count);
+    //calculate path length:
+    float path_length = 0;
+    if (path.size() > 1)
+    {
+      for (uint i = 1; i < path.size(); i++)
+      {
+        float change_y = fabs(path[i - 1].x - path[i].x)/1000.0;
+        float change_x = fabs(path[i - 1].y - path[i].y)/1000.0;
+        float newLength = sqrt(change_x*change_x + change_y*change_y);
+        path_length += newLength;
+      }
+    }
+    printf("path_length: %f, %d\n", path_length, print_counter);
+    print_counter++;
+
+    //data_log << disparity_count << ", " << path_length << "\n";
+
+
+    // jpp_obj->start_disparity_counter();
+    // jpp_obj->get_disparity_map("blah", 5, NULL);
+    // printf("spp num_disparity_checks: %d\n", jpp_obj->get_disparity_count());
     update_planned_path(jpp_obj->getPath());
     update_surface(jpp_obj->get_surface_points());
     update_surface_checks(jpp_obj->get_surface_checks());
@@ -225,6 +248,8 @@ int main(int argc, char** argv) {
   ros::NodeHandle nh;
   image_transport::ImageTransport it(nh);
 
+  data_log.open ("jpp_log.txt");
+
   pub_path = nh.advertise<nav_msgs::Path>("/jackal/planned_path", 1);
   pub_surface_point_cloud = nh.advertise<sensor_msgs::PointCloud>("/jackal/surface", 1);
   pub_surface_check_point_cloud = nh.advertise<sensor_msgs::PointCloud>("/jackal/surface_check", 1);
@@ -278,5 +303,6 @@ int main(int argc, char** argv) {
   server.setCallback(f);
 
   ros::spin();
+  data_log.close();
   return 0;
 }

@@ -22,9 +22,9 @@ Mat JPP::get_disparity_map(const char* method, int max_disp, const char* outfile
   Mat dmap;
   _stereo->compute_disparity_map(max_disp, _jpp_config.SAD_WINDOW_SIZE);
   dmap = _stereo->get_disparity_map();
-  if (outfile != NULL) {
-    imwrite(outfile, dmap);
-  }
+  //if (outfile != NULL) {
+    //imwrite(outfile, dmap);
+  //}
   return dmap;
 }
 
