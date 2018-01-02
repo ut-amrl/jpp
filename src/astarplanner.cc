@@ -50,8 +50,10 @@ bool cw)
   Point goal = e;
   if (goal.x > _config.MAX_X) //when past grid
   {
+    printf("goal.x: %d, goal.y: %d\n", goal.x, goal.y);
     //project goal to edge of planner grid
     int y_intercept = (int)round(((float)goal.y*(float)_config.MAX_X)/(float)goal.x);
+    printf("y_intercept: %d\n", y_intercept);
     if (y_intercept > -_config.MAX_Y && y_intercept < _config.MAX_Y)
     {
       end.p.x = _config.MAX_X;
@@ -59,6 +61,7 @@ bool cw)
     }
     else
     {
+      printf("bad\n");
       if (goal.y > 0)
       {
         path.push_back(Point(0, _config.MAX_X));
@@ -73,9 +76,11 @@ bool cw)
     goal.y >= -_config.MAX_Y && goal.y <= _config.MAX_Y)
   {
     //do nothing
+    printf("good\n");
   }
   else 
   {
+    printf("duno\n");
     if (goal.y > 0)
     {
       path.push_back(Point(0, _config.MAX_X));

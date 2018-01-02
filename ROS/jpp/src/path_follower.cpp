@@ -49,7 +49,8 @@ void newPathCallBack(const nav_msgs::Path::ConstPtr& p){
 
   path.header = p->header;
   path.poses = p->poses;
-  path_index = path.poses.size();
+  path_index = path.poses.size() - 1;
+  ROS_INFO("path pose: %d", path.poses.size());
   path_init_pose = current_pose;
   tf_path_init_pose = tf_current_pose;
 
@@ -72,6 +73,11 @@ void newPathCallBack(const nav_msgs::Path::ConstPtr& p){
   {
     line_strip.points.push_back(path.poses[i].pose.position);
   }
+
+  //if (path.poses.size() == 1)
+  //{
+    //ROS_INFO("x val = %f", path.poses[0].pose.position.x);
+  //}
 
   //publish
   path_pub.publish(line_strip);
@@ -152,9 +158,21 @@ pair< double, double > goto_pose(geometry_msgs::Pose pose)
   //for now orientation is egnored
   pair< double, double > velocity(0,0);
 
-  velocity.first = max_forward_vel;
+  //ROS_INFO("pose.position.x: %f", pose.position.x);
+  if (pose.position.x <= 0.01)
+  {
+    //ROS_INFO("stop!");
+    velocity.first = 0.0;
+  }
+  else 
+  {
+    //ROS_INFO("go as you please");
+    velocity.first = max_forward_vel;
+  }
 
-  velocity.second = (0.8 * angle_to_point(pose.position));
+  geometry_msgs::Pose gPose = transform_pose(pose);
+
+  velocity.second = (0.8 * angle_to_point(gPose.position));
   if (velocity.second > 0)
     velocity.second = min(velocity.second, max_rot_vel);
   else
@@ -179,7 +197,9 @@ pair< double, double > follow_path()
   }
   else 
   {
-    return goto_pose(transform_pose(path.poses[path_index].pose));
+    //ROS_INFO("path.poses.size(): %d", path.poses.size());
+    //ROS_INFO("index: %d", path_index);
+    return goto_pose(path.poses[path_index].pose);//transform_pose(path.poses[path_index].pose));
   }
   return(pair< double, double > (0,0));
 }
@@ -222,7 +242,7 @@ void safeNavigate(const sensor_msgs::JoyConstPtr& msg) {
   } else {
     rot_vel = min(desired_rot_vel, rot_vel + rot_accel);
   }
-  ROS_INFO("real V: %f, W: %f", forward_vel, forward_vel);
+  ROS_INFO("real V: %f, W: %f", forward_vel, rot_vel);
   geometry_msgs::Twist vel_msg;
   vel_msg.linear.x = forward_vel;
   vel_msg.angular.z = rot_vel;

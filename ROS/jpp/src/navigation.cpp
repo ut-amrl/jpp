@@ -29,6 +29,8 @@ int d = 0;
 int counter = 0;
 geometry_msgs::Pose global_waypoint;
 
+float prev_y_total = 0;
+
 //publishers not in main
 ros::Publisher pub_path;
 
@@ -41,6 +43,7 @@ void update_planned_path(vector< Point > path){
   real_path.header.stamp = ros::Time::now();
 
   bool path_invalid = true;
+  float y_total = 0;
   for(uint32_t i = 0; i < path.size(); i++)
   {
     if (path[i].x > jpp_config.START_X)
@@ -56,6 +59,8 @@ void update_planned_path(vector< Point > path){
     s_pose.pose.orientation.z = 0;
     s_pose.pose.orientation.w = 1;
 
+    y_total += s_pose.pose.position.y;
+
     real_path.poses.push_back(s_pose);
   }
 
@@ -63,29 +68,37 @@ void update_planned_path(vector< Point > path){
   {//if invalid turn left or right
     geometry_msgs::PoseStamped s_pose;
     s_pose.header = real_path.header;
-    s_pose.pose.position.x = 0;
+    s_pose.pose.position.x = 0.0;
     //s_pose.pose.position.y = 0;
-    s_pose.pose.position.z = 0;
-    s_pose.pose.orientation.x = 0;
-    s_pose.pose.orientation.y = 0;
-    s_pose.pose.orientation.z = 0;
-    s_pose.pose.orientation.w = 1;
+    s_pose.pose.position.z = 0.0;
+    s_pose.pose.orientation.x = 0.0;
+    s_pose.pose.orientation.y = 0.0;
+    s_pose.pose.orientation.z = 0.0;
+    s_pose.pose.orientation.w = 1.0;
 
-    if (real_path.poses[0].pose.position.y > 0.0)
+    if (prev_y_total > 0.0)//real_path.poses[0].pose.position.y > 0.0)
     {
+      ROS_INFO("stop and turn left");
       s_pose.pose.position.y = 1.0;//turn left
     }
-    else if (real_path.poses[0].pose.position.y < 0.0)
+    else if (prev_y_total < 0.0)//real_path.poses[0].pose.position.y < 0.0)
     {
+      ROS_INFO("stop and turn right");
       s_pose.pose.position.y = -1.0;//turn right
     }
     else
     {
+      ROS_INFO("stop");
       s_pose.pose.position.y = 0.0;//stop
     }
 
     real_path.poses.clear();
     real_path.poses.push_back(s_pose);
+    ROS_INFO("real_path.poses[real_path.size()]: %f", real_path.poses[real_path.poses.size() - 1].pose.position.x);
+  }
+  else
+  {
+    prev_y_total = y_total;
   }
 
   pub_path.publish(real_path);
@@ -107,7 +120,7 @@ void imgCallback(const sensor_msgs::ImageConstPtr& msg_left, const sensor_msgs::
     jpp_obj->update_jpp_config(jpp_config);
   
   jpp_obj->load_images(img_left, img_right);
-  
+
   if (strcmp(output, "astar") == 0) {
     vector< Point > path = jpp_obj->plan_astar(global_waypoint.position.x, global_waypoint.position.y);
     update_planned_path(jpp_obj->getPath());
@@ -181,15 +194,6 @@ int main(int argc, char** argv) {
   const char* right_img_topic;
   const char* calib_file_name;
   const char* jpp_config_file;
-
-  //intitulize global way point
-  global_waypoint.position.x = (float)jpp_config.MAX_X/1000.0;
-  global_waypoint.position.y = 0;
-  global_waypoint.position.z = 0;
-  global_waypoint.orientation.x = 0;
-  global_waypoint.orientation.y = 0;
-  global_waypoint.orientation.z = 0;
-  global_waypoint.orientation.w = 1;
   
   static struct poptOption options[] = {
     { "left_topic",'l',POPT_ARG_STRING,&left_img_topic,0,"Left image topic name","STR" },
@@ -221,6 +225,15 @@ int main(int argc, char** argv) {
   jpp_config = JPP_Config(cf);
   
   jpp_obj = new JPP(calib_file, cf);
+
+  //intitulize global way point
+  global_waypoint.position.x = ((float)jpp_config.MAX_X)/1000.0;
+  global_waypoint.position.y = 0;
+  global_waypoint.position.z = 0;
+  global_waypoint.orientation.x = 0;
+  global_waypoint.orientation.y = 0;
+  global_waypoint.orientation.z = 0;
+  global_waypoint.orientation.w = 1;
   
   message_filters::Subscriber<sensor_msgs::Image> sub_img_left(nh, left_img_topic, 1);
   message_filters::Subscriber<sensor_msgs::Image> sub_img_right(nh, right_img_topic, 1);
