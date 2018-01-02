@@ -34,6 +34,8 @@ int counter = 0;
 int print_counter = 0;
 ofstream data_log;
 
+float prev_y_total = 0;
+
 //publishers not in main
 ros::Publisher pub_path;
 ros::Publisher pub_surface_point_cloud;
@@ -48,6 +50,8 @@ void update_planned_path(vector< Point > path){
   real_path.header.stamp = ros::Time::now();
 
   bool path_invalid = true;
+
+  float y_total = 0;
   for(uint32_t i = 0; i < path.size(); i++)
   {
     if (path[i].x > jpp_config.START_X)
@@ -63,23 +67,47 @@ void update_planned_path(vector< Point > path){
     s_pose.pose.orientation.z = 0;
     s_pose.pose.orientation.w = 1;
 
+    y_total += s_pose.pose.position.y;
+
     real_path.poses.push_back(s_pose);
   }
 
   if (path_invalid)//if the path is not valid stop, doing this by making the path just the 0 pose
   {
+    //if invalid turn left or right
     geometry_msgs::PoseStamped s_pose;
     s_pose.header = real_path.header;
     s_pose.pose.position.x = 0;
-    s_pose.pose.position.y = 0;
+    //s_pose.pose.position.y = 0;
     s_pose.pose.position.z = 0;
     s_pose.pose.orientation.x = 0;
     s_pose.pose.orientation.y = 0;
     s_pose.pose.orientation.z = 0;
     s_pose.pose.orientation.w = 1;
 
+    if (prev_y_total > 0.0)//real_path.poses[0].pose.position.y > 0.0)
+    {
+      ROS_INFO("stop and turn left");
+      s_pose.pose.position.y = 1.0;//turn left
+    }
+    else if (prev_y_total < 0.0)//real_path.poses[0].pose.position.y < 0.0)
+    {
+      ROS_INFO("stop and turn right");
+      s_pose.pose.position.y = -1.0;//turn right
+    }
+    else
+    {
+      ROS_INFO("stop //should random trun, but for now left");
+      s_pose.pose.position.y = 1.0;//should random trun, but for now left
+    }
+
     real_path.poses.clear();
     real_path.poses.push_back(s_pose);
+    ROS_INFO("real_path.poses[real_path.size()]: %f", real_path.poses[real_path.poses.size() - 1].pose.position.x);
+  }
+  else
+  {
+    prev_y_total = y_total;
   }
 
   pub_path.publish(real_path);

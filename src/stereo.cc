@@ -418,12 +418,14 @@ bool Stereo::find_surface(int ix, int iy, float range)
   vector< pair< Point3f, float > > confpos;
   //vector< pair< float, float > > minima;
 
+  int num_in_image = 0;
   for (float z = z_min; z < z_max; z += inc)
   {
     search_point.z = z;
     ptl = project_point_cam(search_point, 0);
     ptr = project_point_cam(search_point, 1);
     if (in_img(ptl.x,ptl.y) && in_img(ptr.x,ptr.y)) {
+      num_in_image++;
       cost = desc_cost(ptl, ptr, w)/((double)((2*w+1)*(2*w+1)));
 
       confpos.push_back(pair< Point3f, float >(search_point, cost));
@@ -441,16 +443,29 @@ bool Stereo::find_surface(int ix, int iy, float range)
     }
   }
   
-  search_point.z = best_z;
+  if (num_in_image != 0)
+  {
+    search_point.z = best_z;
+    ptl = project_point_cam(search_point, 0);
+    ptr = project_point_cam(search_point, 1);
+    int idx = ptl.y * _img_left.cols + ptl.x;
+    _obstacleCache[idx] = 1;
+
+    surface[ix][iy].z = best_z;
+    surface[ix][iy].median_filtered_z = best_z;
+    surface[ix][iy].confpos = confpos;
+    return true;
+  }
+  search_point.z = 0;
   ptl = project_point_cam(search_point, 0);
   ptr = project_point_cam(search_point, 1);
   int idx = ptl.y * _img_left.cols + ptl.x;
   _obstacleCache[idx] = 1;
 
-  surface[ix][iy].z = best_z;
-  surface[ix][iy].median_filtered_z = best_z;
+  surface[ix][iy].z = 0;
+  surface[ix][iy].median_filtered_z = 0;
   surface[ix][iy].confpos = confpos;
-  return true;
+  return false;
 }
 
 Point3f Stereo::median_filter(int ix, int iy, int neighbor_window_size)
@@ -617,6 +632,11 @@ Point3f Stereo::layer_median_filter(int ix, int iy, int neighbor_window_size)
   vector< pair< float, float > > median_neighbor_Zs;
   for (int i = 0; i < neighbor_Zs.size(); i++)
   {
+    //printf("min number of neighbors: %f\n", ((neighbor_window_size + 1)*(neighbor_window_size + 1))/1.5);
+    if ((float)neighbor_Zs[i].second.size() <= 3)//((neighbor_window_size + 1)*(neighbor_window_size + 1))/2)
+    {
+      continue;
+    }
     pair< float, float > new_median_neighbor_Z;
     new_median_neighbor_Z.first = neighbor_Zs[i].first;
     new_median_neighbor_Z.second = neighbor_Zs[i].second[neighbor_Zs[i].second.size()/2];
