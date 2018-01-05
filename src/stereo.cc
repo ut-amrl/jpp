@@ -377,6 +377,7 @@ bool Stereo::find_surface(int ix, int iy, float range)
 
   surface[ix][iy].discovered = true;
 
+  float optimum_z = 0;
   float center = 0;
   float sum = 0;
   float num = 1; //this add a zero to the average
@@ -391,7 +392,8 @@ bool Stereo::find_surface(int ix, int iy, float range)
       }
     }
   }
-  center = sum/num;
+  optimum_z = sum/num;
+  center = optimum_z;
   //center = 0;//////////////////////////////////////////////////////////////////////////
 
   float z_min = center - (range/2.0);
@@ -414,6 +416,7 @@ bool Stereo::find_surface(int ix, int iy, float range)
   double cost = 9999.9;
   Point ptl = project_point_cam(search_point, 0);
   Point ptr = project_point_cam(search_point, 1);
+  float z_error_weight = 2.0;
 
   vector< pair< Point3f, float > > confpos;
   //vector< pair< float, float > > minima;
@@ -426,7 +429,9 @@ bool Stereo::find_surface(int ix, int iy, float range)
     ptr = project_point_cam(search_point, 1);
     if (in_img(ptl.x,ptl.y) && in_img(ptr.x,ptr.y)) {
       num_in_image++;
-      cost = desc_cost(ptl, ptr, w)/((double)((2*w+1)*(2*w+1)));
+      float z_error = fabs(z - optimum_z);
+      cost = (desc_cost(ptl, ptr, w)/((double)((2*w+1)*(2*w+1)))) + z_error*z_error_weight;
+      //cost += 
 
       confpos.push_back(pair< Point3f, float >(search_point, cost));
 
@@ -443,29 +448,18 @@ bool Stereo::find_surface(int ix, int iy, float range)
     }
   }
   
-  if (num_in_image != 0 && min_cost <= _jpp_config.CONF_POS_THRESH)
+  if (num_in_image == 0 || min_cost > _jpp_config.CONF_POS_THRESH)
   {
-    search_point.z = best_z;
-    ptl = project_point_cam(search_point, 0);
-    ptr = project_point_cam(search_point, 1);
-    int idx = ptl.y * _img_left.cols + ptl.x;
-    _obstacleCache[idx] = 1;
-
-    surface[ix][iy].z = best_z;
-    surface[ix][iy].median_filtered_z = best_z;
+    surface[ix][iy].z = 10.0;
+    surface[ix][iy].median_filtered_z = 10.0;
     surface[ix][iy].confpos = confpos;
-    return true;
+    return false;
   }
-  search_point.z = 0;
-  ptl = project_point_cam(search_point, 0);
-  ptr = project_point_cam(search_point, 1);
-  int idx = ptl.y * _img_left.cols + ptl.x;
-  _obstacleCache[idx] = 1;
 
-  surface[ix][iy].z = 0;
-  surface[ix][iy].median_filtered_z = 0;
+  surface[ix][iy].z = best_z;
+  surface[ix][iy].median_filtered_z = best_z;
   surface[ix][iy].confpos = confpos;
-  return false;
+  return true;
 }
 
 Point3f Stereo::median_filter(int ix, int iy, int neighbor_window_size)
@@ -500,11 +494,7 @@ Point3f Stereo::median_filter(int ix, int iy, int neighbor_window_size)
         {
           if (!surface[nx][ny].discovered)
           {
-            find_surface(nx, ny, 0.2);//range will be determined by something else
-          }
-          if (!surface[nx][ny].layer_median_filtered)
-          {
-            layer_median_filter(nx, ny, 0);
+            find_surface(nx, ny, 0.4);//range will be determined by something else
           }
           if (true)//surface[nx][ny].valid)
           {
@@ -513,9 +503,9 @@ Point3f Stereo::median_filter(int ix, int iy, int neighbor_window_size)
             //niave implementation
             for(vector< float >::iterator it = neighbors.begin(); it != neighbors.end(); ++it)
             {
-              if (surface[nx][ny].layer_median_filtered_z <= *it)
+              if (surface[nx][ny].z <= *it)
               {
-                neighbors.insert(it, surface[nx][ny].layer_median_filtered_z);
+                neighbors.insert(it, surface[nx][ny].z);
                 break;
               }
             }
@@ -574,7 +564,7 @@ Point3f Stereo::layer_median_filter(int ix, int iy, int neighbor_window_size)
           if (!surface[nx][ny].discovered)
           {
             Point3f neighbor_p = surface_point(nx, ny);
-            find_surface(neighbor_p, 0.2);//range will be determined by something else
+            find_surface(neighbor_p, 0.4);//range will be determined by something else
           }
           if (true)//surface[nx][ny].valid)
           {
@@ -701,7 +691,7 @@ float Stereo::change_in_slope(int ix, int iy)
         //check valid y index
         if (ny >= 0 && ny < surface[nx].size())
         {
-          median_filter(nx, ny, 2);
+          median_filter(nx, ny, 1);
           //layer_median_filter(nx, ny, 3);
         }
       }
@@ -737,6 +727,16 @@ float Stereo::change_in_slope(int ix, int iy)
 
   surface[ix][iy].slope_change = greatest_slope_change;
   surface[ix][iy].slope_change_calculated = true;
+
+  //visualize
+  Point ptl = project_point_cam(surface_point(ix, iy), 0);
+  Point ptr = project_point_cam(surface_point(ix, iy), 1);
+  int idx = ptl.y * _img_left.cols + ptl.x;
+  _obstacleCache[idx] = (int)(1.0 + greatest_slope_change*200.0);
+  if (_obstacleCache[idx] > 255)
+  {
+    _obstacleCache[idx] = 255;
+  }
 
   return greatest_slope_change;
 }
@@ -932,7 +932,7 @@ bool Stereo::is_bot_clear(const Point3f p, float safe_radius, float inc, bool co
       //   return false;
       // }
 
-      find_surface(q, 0.2);
+      find_surface(q, 0.4);
       int ix, iy;
       surface_index(q, &ix, &iy);
       //average_filter(ix, iy, 1);
@@ -953,7 +953,7 @@ float Stereo::roughness(const Point3f p, float safe_radius, float inc, bool col_
       Point3f q(p.x+x,p.y+y,0.0);
 
       float slope_change = change_in_slope(q);
-      if (slope_change > 1.3)//1.3
+      if (slope_change > 1.0)//0.8)//1.3
       {
         return -1.0;
       }
@@ -1051,36 +1051,47 @@ void Stereo::jpp_visualizations(Mat& confPos, Mat& confNeg)
   for (int i = 0; i < confPos.cols; i++) {
     for (int j = 0; j < confPos.rows; j++) {
       int idx = j * _img_left.cols + i;
-      if (_obstacleCache[idx] == 1) { // obstacle free
-        if (!_jpp_config.CONVEX_WORLD && _colCache[idx] == 2) {
-          circle(confPos,Point(i,j),2,Scalar(0,0,255),-1,8,0);
-        } else {
-          circle(confPos,Point(i,j),2,Scalar(0,255,0),-1,8,0);
-        }
-        //cacheVis.at<Vec3b>(j,i) = Vec3b(0,255,0);
-      }
-      else if (_obstacleCache[idx] == 2) { // obstacle
-        circle(confPos,Point(i,j),3,Scalar(0,200,200),-1,8,0);
-        //cacheVis.at<Vec3b>(j,i) = Vec3b(0,0,255);
-      } 
-      else if (_obstacleCache[idx] == 3) { // obstacle
-        circle(confPos,Point(i,j),3,Scalar(0,0,255),-1,8,0);
-        //cacheVis.at<Vec3b>(j,i) = Vec3b(0,0,255);
-      }
-      else {
-        //int col = (int)img_left.at<uchar>(j,i);
-        //cacheVis.at<Vec3b>(j,i) = Vec3b(col,col,col);
-      }
-      if (_confNegCache[idx] == 2) { // obstacle free
-        circle(confNeg,Point(i,j),1,Scalar(0,200,200),-1,8,0);
-      }
-      else if (_confNegCache[idx] == 1) { // obstacle
-        circle(confNeg,Point(i,j),1,Scalar(255,0,255),-1,8,0);
-        //cacheVis.at<Vec3b>(j,i) = Vec3b(0,0,255);
-      } else {
+      if (_obstacleCache[idx] != 0) {
+        circle(confPos,Point(i,j),2,Scalar(0, 255 - _obstacleCache[idx], _obstacleCache[idx]),-1,8,0);
       }
     }
   }
+
+  //old:
+
+  // for (int i = 0; i < confPos.cols; i++) {
+  //   for (int j = 0; j < confPos.rows; j++) {
+  //     int idx = j * _img_left.cols + i;
+  //     if (_obstacleCache[idx] == 1) { // obstacle free
+  //       if (!_jpp_config.CONVEX_WORLD && _colCache[idx] == 2) {
+  //         circle(confPos,Point(i,j),2,Scalar(0,0,255),-1,8,0);
+  //       } else {
+  //         circle(confPos,Point(i,j),2,Scalar(0,255,0),-1,8,0);
+  //       }
+  //       //cacheVis.at<Vec3b>(j,i) = Vec3b(0,255,0);
+  //     }
+  //     else if (_obstacleCache[idx] == 2) { // obstacle
+  //       circle(confPos,Point(i,j),3,Scalar(0,200,200),-1,8,0);
+  //       //cacheVis.at<Vec3b>(j,i) = Vec3b(0,0,255);
+  //     } 
+  //     else if (_obstacleCache[idx] == 3) { // obstacle
+  //       circle(confPos,Point(i,j),3,Scalar(0,0,255),-1,8,0);
+  //       //cacheVis.at<Vec3b>(j,i) = Vec3b(0,0,255);
+  //     }
+  //     else {
+  //       //int col = (int)img_left.at<uchar>(j,i);
+  //       //cacheVis.at<Vec3b>(j,i) = Vec3b(col,col,col);
+  //     }
+  //     if (_confNegCache[idx] == 2) { // obstacle free
+  //       circle(confNeg,Point(i,j),1,Scalar(0,200,200),-1,8,0);
+  //     }
+  //     else if (_confNegCache[idx] == 1) { // obstacle
+  //       circle(confNeg,Point(i,j),1,Scalar(255,0,255),-1,8,0);
+  //       //cacheVis.at<Vec3b>(j,i) = Vec3b(0,0,255);
+  //     } else {
+  //     }
+  //   }
+  // }
 }
 
 void Stereo::blend_images(Mat& src1, Mat& src2, float alpha, Mat& dst)
