@@ -392,7 +392,7 @@ bool Stereo::find_surface(int ix, int iy, float range)
     }
   }
   center = sum/num;
-  center = 0;//////////////////////////////////////////////////////////////////////////
+  //center = 0;//////////////////////////////////////////////////////////////////////////
 
   float z_min = center - (range/2.0);
   float z_max = center + (range/2.0);
@@ -443,7 +443,7 @@ bool Stereo::find_surface(int ix, int iy, float range)
     }
   }
   
-  if (num_in_image != 0)
+  if (num_in_image != 0 && min_cost <= _jpp_config.CONF_POS_THRESH)
   {
     search_point.z = best_z;
     ptl = project_point_cam(search_point, 0);
@@ -500,11 +500,11 @@ Point3f Stereo::median_filter(int ix, int iy, int neighbor_window_size)
         {
           if (!surface[nx][ny].discovered)
           {
-            find_surface(nx, ny, 0.4);//range will be determined by something else
+            find_surface(nx, ny, 0.2);//range will be determined by something else
           }
           if (!surface[nx][ny].layer_median_filtered)
           {
-            layer_median_filter(nx, ny, 2);
+            layer_median_filter(nx, ny, 0);
           }
           if (true)//surface[nx][ny].valid)
           {
@@ -574,7 +574,7 @@ Point3f Stereo::layer_median_filter(int ix, int iy, int neighbor_window_size)
           if (!surface[nx][ny].discovered)
           {
             Point3f neighbor_p = surface_point(nx, ny);
-            find_surface(neighbor_p, 0.4);//range will be determined by something else
+            find_surface(neighbor_p, 0.2);//range will be determined by something else
           }
           if (true)//surface[nx][ny].valid)
           {
@@ -633,10 +633,10 @@ Point3f Stereo::layer_median_filter(int ix, int iy, int neighbor_window_size)
   for (int i = 0; i < neighbor_Zs.size(); i++)
   {
     //printf("min number of neighbors: %f\n", ((neighbor_window_size + 1)*(neighbor_window_size + 1))/1.5);
-    if ((float)neighbor_Zs[i].second.size() <= 3)//((neighbor_window_size + 1)*(neighbor_window_size + 1))/2)
-    {
-      continue;
-    }
+    // if ((float)neighbor_Zs[i].second.size() <= 3)//((neighbor_window_size + 1)*(neighbor_window_size + 1))/2)
+    // {
+    //   continue;
+    // }
     pair< float, float > new_median_neighbor_Z;
     new_median_neighbor_Z.first = neighbor_Zs[i].first;
     new_median_neighbor_Z.second = neighbor_Zs[i].second[neighbor_Zs[i].second.size()/2];
@@ -701,7 +701,7 @@ float Stereo::change_in_slope(int ix, int iy)
         //check valid y index
         if (ny >= 0 && ny < surface[nx].size())
         {
-          median_filter(nx, ny, 0);
+          median_filter(nx, ny, 2);
           //layer_median_filter(nx, ny, 3);
         }
       }
@@ -932,7 +932,7 @@ bool Stereo::is_bot_clear(const Point3f p, float safe_radius, float inc, bool co
       //   return false;
       // }
 
-      find_surface(q, 0.4);
+      find_surface(q, 0.2);
       int ix, iy;
       surface_index(q, &ix, &iy);
       //average_filter(ix, iy, 1);

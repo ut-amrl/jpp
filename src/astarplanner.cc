@@ -141,7 +141,7 @@ void AStarPlanner::findPath(Stereo* stereo)
         break;
       }
       // update scores of successor node
-      suc.g = q.g + L2Dist(suc.p, q.p);
+      suc.g = q.g + L2Dist(suc.p, q.p); //+ roughness/10.0;
       suc.h = L1Dist(end.p, cur_pt);
       suc.f = suc.g + suc.h;
       
@@ -169,7 +169,7 @@ void AStarPlanner::findPath(Stereo* stereo)
       } else {
         x++;
         suc.id = x;
-        grid_id[suc.id] = cur_pt;
+        grid_id[suc.id] = cur_pt;////////////////////////////////////////////////////////problem!!
         parent[suc.id] = q.id;
         /*
         cout << suc.p << " f: " << suc.f << " g: " << suc.g << " h: " << 
