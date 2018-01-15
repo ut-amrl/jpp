@@ -431,7 +431,6 @@ bool Stereo::find_surface(int ix, int iy, float range)
       num_in_image++;
       float z_error = fabs(z - optimum_z);
       cost = (desc_cost(ptl, ptr, w)/((double)((2*w+1)*(2*w+1)))) + z_error*z_error_weight;
-      //cost += 
 
       confpos.push_back(pair< Point3f, float >(search_point, cost));
 
@@ -953,7 +952,7 @@ float Stereo::roughness(const Point3f p, float safe_radius, float inc, bool col_
       Point3f q(p.x+x,p.y+y,0.0);
 
       float slope_change = change_in_slope(q);
-      if (slope_change > 1.0)//0.8)//1.3
+      if (slope_change > 1.1)//0.8)//1.3
       {
         return -1.0;
       }

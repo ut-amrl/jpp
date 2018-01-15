@@ -36,9 +36,29 @@ if (OPENMP_FOUND)
   set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
 endif()
 set(Boost_USE_STATIC_LIBS OFF) 
-set(Boost_USE_MULTITHREADED ON)  
-set(Boost_USE_STATIC_RUNTIME OFF) 
+set(Boost_USE_MULTITHREADED ON)
+set(Boost_USE_STATIC_RUNTIME OFF)
 find_package(Boost 1.54.0 COMPONENTS system filesystem program_options REQUIRED)
+#temporary root mean square add in
+find_package(rosbuild REQUIRED COMPONENTS
+  roscpp
+  rospy
+  std_msgs
+  sensor_msgs
+  message_generation
+)
+find_package(sensor_msgs)
+add_service_files(
+  FILES
+  rmse.srv
+)
+generate_messages(
+  DEPENDENCIES
+  std_msgs
+  sensor_msgs
+)
+#end of temporary
+
 
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/bin)

@@ -22,8 +22,12 @@ private:
   bool inGrid(Point p);
   float L1Dist(Point p, Point q);
   float L2Dist(Point p, Point q);
+  float dist_to_prevPath(Point p);
   multiset< node > open_list;
+  multiset< float > closed_list_x;
+  multiset< float > closed_list_y;
   vector< Point > path;
+  vector< Point > prevPath;
   int safe_radius;
   int bot_height;
   bool convex_world;
@@ -34,6 +38,7 @@ public:
   map< int, Point > grid_id;
   vector< node > graph;
   AStarPlanner(JPP_Config& conf);
+  AStarPlanner(JPP_Config& conf, vector< Point > new_prevPath);
   void setParams(Point s, Point e, int my, int i, int r, int bh, bool cw);
   void findPath(Stereo* stereo);
   void setPath(node n);

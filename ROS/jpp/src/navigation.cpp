@@ -19,6 +19,7 @@
 #include <Eigen/Dense>
 #include <iostream>
 #include <fstream>
+#include "jpp/rmse.h"
 #include "jpp.h"
 #include "popt_pp.h"
 
@@ -35,11 +36,13 @@ int print_counter = 0;
 ofstream data_log;
 
 float prev_y_total = 0;
+vector< Point > prevPath;
 
 //publishers not in main
 ros::Publisher pub_path;
 ros::Publisher pub_surface_point_cloud;
 ros::Publisher pub_surface_check_point_cloud;
+ros::ServiceClient rmse_client;
 
 void update_planned_path(vector< Point > path){
   //get the jpp generated path
@@ -113,7 +116,7 @@ void update_planned_path(vector< Point > path){
   pub_path.publish(real_path);
 }
 
-void update_surface(vector< pair< Point3f, float > > points)
+sensor_msgs::PointCloud update_surface(vector< pair< Point3f, float > > points)
 {
   sensor_msgs::PointCloud point_cloud;
   point_cloud.header.frame_id = "jackal";
@@ -125,10 +128,10 @@ void update_surface(vector< pair< Point3f, float > > points)
   for (int i = 0; i < points.size(); i++)
   {
     //filter for one slice
-    //if (round(points[i].y * 1000.0) != 0.0)
-      //continue;
+    // if (round(points[i].first.y * 1000.0) != 0.0)
+    //   continue;
     geometry_msgs::Point32 p;
-    p.x = points[i].first.x;
+    p.x = points[i].first.x - 0.02;
     p.y = points[i].first.y;
     p.z = points[i].first.z;
 
@@ -139,7 +142,8 @@ void update_surface(vector< pair< Point3f, float > > points)
 
   point_cloud.channels.push_back(c);
 
-  pub_surface_point_cloud.publish(point_cloud);
+  //pub_surface_point_cloud.publish(point_cloud);
+  return point_cloud;
 }
 
 void update_surface_checks(vector< pair< Point3f, float > > confpos_points)
@@ -154,8 +158,8 @@ void update_surface_checks(vector< pair< Point3f, float > > confpos_points)
   for (int i = 0; i < confpos_points.size(); i++)
   {
     //filter for one slice
-    //if (round(confpos_points[i].first.y * 1000.0) != 0.0)
-      //continue;
+    // if (round(confpos_points[i].first.y * 1000.0) != 0.0)
+    //   continue;
     geometry_msgs::Point32 p;
     p.x = confpos_points[i].first.x;
     p.y = confpos_points[i].first.y;
@@ -190,7 +194,8 @@ void imgCallback(const sensor_msgs::ImageConstPtr& msg_left, const sensor_msgs::
   
   if (strcmp(output, "astar") == 0) {
     jpp_obj->start_disparity_counter();
-    vector< Point > path = jpp_obj->plan_astar();
+    vector< Point > path = jpp_obj->plan_astar(prevPath);
+    prevPath = path;
     int disparity_count = jpp_obj->get_disparity_count();
     printf("jpp num_disparity_checks: %d, ", disparity_count);
     //calculate path length:
@@ -205,18 +210,36 @@ void imgCallback(const sensor_msgs::ImageConstPtr& msg_left, const sensor_msgs::
         path_length += newLength;
       }
     }
-    printf("path_length: %f, %d\n", path_length, print_counter);
+    printf("path_length: %f, ", path_length);
     print_counter++;
 
-    //data_log << disparity_count << ", " << path_length << "\n";
+    update_planned_path(jpp_obj->getPath());
+    sensor_msgs::PointCloud point_cloud = update_surface(jpp_obj->get_surface_points());
+    update_surface_checks(jpp_obj->get_surface_checks());
 
+    jpp::rmse srv;
+    srv.request.L = *msg_left;
+    srv.request.R = *msg_right;
+    srv.request.pc = point_cloud;
+    if (rmse_client.call(srv))
+    {
+      printf("rmse: %f, %d\n", srv.response.rmse, print_counter);
+    }
+    else
+    {
+      printf("rmse: failure, %d\n", print_counter);
+    }
+    pub_surface_point_cloud.publish(point_cloud);
+
+    //data_log << disparity_count << ", " << path_length << ", " << srv.response.rmse << "\n";
 
     // jpp_obj->start_disparity_counter();
-    // jpp_obj->get_disparity_map("blah", 5, NULL);
+    // jpp_obj->get_disparity_map("nothing", 30, NULL);
     // printf("spp num_disparity_checks: %d\n", jpp_obj->get_disparity_count());
-    update_planned_path(jpp_obj->getPath());
-    update_surface(jpp_obj->get_surface_points());
-    update_surface_checks(jpp_obj->get_surface_checks());
+
+    // update_planned_path(jpp_obj->getPath());
+    // update_surface(jpp_obj->get_surface_points());
+    // update_surface_checks(jpp_obj->get_surface_checks());
     if (v == 1) {
       pair< Mat, Mat > vis;
       if (w == 1)
@@ -281,6 +304,7 @@ int main(int argc, char** argv) {
   pub_path = nh.advertise<nav_msgs::Path>("/jackal/planned_path", 1);
   pub_surface_point_cloud = nh.advertise<sensor_msgs::PointCloud>("/jackal/surface", 1);
   pub_surface_check_point_cloud = nh.advertise<sensor_msgs::PointCloud>("/jackal/surface_check", 1);
+  rmse_client = nh.serviceClient<jpp::rmse>("/stereo_dense_reconstruction/rootMeanSquareError");
   
   const char* left_img_topic;
   const char* right_img_topic;

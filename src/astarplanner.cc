@@ -4,6 +4,14 @@ AStarPlanner::AStarPlanner(JPP_Config& conf)
 {
   closed_list = Mat(1000, 1000, CV_8UC1, Scalar(0));
   _config = conf;
+  prevPath = {};
+}
+
+AStarPlanner::AStarPlanner(JPP_Config& conf, vector< Point > new_prevPath)
+{
+  closed_list = Mat(1000, 1000, CV_8UC1, Scalar(0));
+  _config = conf;
+  prevPath = new_prevPath;
 }
 
 bool AStarPlanner::inGrid(Point p)
@@ -22,6 +30,24 @@ float AStarPlanner::L2Dist(Point p, Point q)
 {
   float s = sqrt((p.x-q.x)*(p.x-q.x) + (p.y-q.y)*(p.y-q.y));
   return s;
+}
+
+float AStarPlanner::dist_to_prevPath(Point p)
+{
+  if (prevPath.empty())
+  {
+    return 0;
+  }
+  float mindist = 9999.9;
+  for (uint i = 0; i < prevPath.size(); i++)
+  {
+    float dist = L1Dist(prevPath[i], p);
+    if (dist < mindist)
+    {
+      mindist = dist;
+    }
+  }
+  return mindist;
 }
 
 void AStarPlanner::setParams(Point s, Point e, int my, int i, int r, int bh, 
@@ -74,7 +100,8 @@ void AStarPlanner::findPath(Stereo* stereo)
   for (;!open_list.empty() && !stop;) {
     ito = open_list.begin();
     node q = *ito;
-    //cout << q.p << " - " << open_list.size() << endl;
+    closed_list_x.insert(q.p.x);
+    closed_list_y.insert(q.p.y);
     open_list.erase(ito);
     Point qcl = clCoord(q.p);
     /*
@@ -102,8 +129,13 @@ void AStarPlanner::findPath(Stereo* stereo)
         continue;
       }
       Point curpt_cl = clCoord(cur_pt);
-      if ((int)closed_list.at<uchar>(curpt_cl) == 255) {
-        //cout << "closed " << cur_pt << endl;
+      // if (int)closed_list.at<uchar>(curpt_cl) == 255) {
+      //   //cout << "closed " << cur_pt << endl;
+      //   continue;
+      // }
+      if (closed_list_x.find(cur_pt.x) != closed_list_x.end() &&
+        closed_list_y.find(cur_pt.y) != closed_list_y.end())
+      {
         continue;
       }
       // obstacle check
@@ -135,31 +167,21 @@ void AStarPlanner::findPath(Stereo* stereo)
         end.id = ++x;
         parent[end.id] = q.id;
         grid_id[end.id] = cur_pt;
-        //cout << "path found" << endl;
         setPath(end);
         stop = true;
         break;
       }
       // update scores of successor node
-      suc.g = q.g + L2Dist(suc.p, q.p); //+ roughness/10.0;
-      suc.h = L1Dist(end.p, cur_pt);
+      suc.g = q.g + L2Dist(suc.p, q.p); //+ roughness*100.0;
+      //suc.g = q.g + roughness*500.0;
+      suc.h = L1Dist(end.p, cur_pt); //+ dist_to_prevPath(cur_pt)*1.1;
       suc.f = suc.g + suc.h;
       
-      /*
-      x++;
-      suc.id = x;
-      x++;
-      grid_id[x] = cur_pt;
-      suc.id = x;
-      */
-        
-      //ito = find(open_list.begin(), open_list.end(), suc);
       ito = open_list.find(suc);
       float eps = 1e-5;
       if (ito != open_list.end()) {
         node n = *ito;
         if (suc.g < n.g) {
-          //cout << "update - " << suc.p << " " << suc.g << " " << n.g << endl;
           suc.id = n.id;
           parent[suc.id] = q.id;
           grid_id[suc.id] = cur_pt;
@@ -169,12 +191,9 @@ void AStarPlanner::findPath(Stereo* stereo)
       } else {
         x++;
         suc.id = x;
-        grid_id[suc.id] = cur_pt;////////////////////////////////////////////////////////problem!!
+        grid_id[suc.id] = cur_pt;
         parent[suc.id] = q.id;
-        /*
-        cout << suc.p << " f: " << suc.f << " g: " << suc.g << " h: " << 
-suc.h << " " << parent[suc.id] << endl;
-        */
+
         open_list.insert(suc);
       }
       
@@ -184,13 +203,13 @@ suc.h << " " << parent[suc.id] << endl;
       }
     }
   }
-  //cout << "path not found" << endl;
   if (!stop)
     setPath(closestnode);
 }
 
 void AStarPlanner::setPath(AStarPlanner::node n)
 {
+  cout << "path size: " << path.size() << endl;
   int id = n.id;
   if (id == -1) return;
   while (id != -1) {
