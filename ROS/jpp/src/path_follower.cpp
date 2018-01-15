@@ -50,7 +50,7 @@ void newPathCallBack(const nav_msgs::Path::ConstPtr& p){
   path.header = p->header;
   path.poses = p->poses;
   path_index = path.poses.size() - 1;
-  ROS_INFO("path pose: %d", path.poses.size());
+  //ROS_INFO("path pose: %d", path.poses.size());
   path_init_pose = current_pose;
   tf_path_init_pose = tf_current_pose;
 

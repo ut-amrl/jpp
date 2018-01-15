@@ -131,7 +131,7 @@ sensor_msgs::PointCloud update_surface(vector< pair< Point3f, float > > points)
     // if (round(points[i].first.y * 1000.0) != 0.0)
     //   continue;
     geometry_msgs::Point32 p;
-    p.x = points[i].first.x - 0.02;
+    p.x = points[i].first.x; //- 0.02;//ofset for visualization
     p.y = points[i].first.y;
     p.z = points[i].first.z;
 
@@ -194,7 +194,9 @@ void imgCallback(const sensor_msgs::ImageConstPtr& msg_left, const sensor_msgs::
   
   if (strcmp(output, "astar") == 0) {
     jpp_obj->start_disparity_counter();
+    printf("break1, ");
     vector< Point > path = jpp_obj->plan_astar(prevPath);
+    printf("break2\n");
     prevPath = path;
     int disparity_count = jpp_obj->get_disparity_count();
     printf("jpp num_disparity_checks: %d, ", disparity_count);

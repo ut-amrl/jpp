@@ -174,7 +174,7 @@ void AStarPlanner::findPath(Stereo* stereo)
       // update scores of successor node
       suc.g = q.g + L2Dist(suc.p, q.p); //+ roughness*100.0;
       //suc.g = q.g + roughness*500.0;
-      suc.h = L1Dist(end.p, cur_pt); //+ dist_to_prevPath(cur_pt)*1.1;
+      suc.h = L1Dist(end.p, cur_pt) + dist_to_prevPath(cur_pt)*1.2;
       suc.f = suc.g + suc.h;
       
       ito = open_list.find(suc);
