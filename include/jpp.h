@@ -26,6 +26,8 @@ public:
   vector< Point > plan_rrt();
   void start_disparity_counter();
   int get_disparity_count();
+  void start_search_space_viz();
+  pair< Mat, Mat > search_space_viz();
   pair< Mat, Mat > visualize_jpp(const char* outfile = NULL);
   vector< Point > getPath();
   vector< pair< Point3f, float > > get_surface_points();

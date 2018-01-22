@@ -20,6 +20,7 @@ private:
   node start, end;
   int max_x, max_y, inc;
   bool inGrid(Point p);
+  float turncost(node n, Point successor);
   float L1Dist(Point p, Point q);
   float L2Dist(Point p, Point q);
   float dist_to_prevPath(Point p);

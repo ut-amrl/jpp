@@ -41,25 +41,25 @@ private:
     bool discovered;
     bool median_filtered;
     bool layer_median_filtered;
-    bool slope_change_calculated;
+    bool roughness_calculated;
     float z;
     float median_filtered_z;
     float layer_median_filtered_z;
-    float slope_change;
+    float roughness;
     vector< confident_z > confident_Zvalues;
     vector< confident_z > confident_Zvalues2;
     vector< pair< Point3f, float > > confpos;
-    _surface_p(bool v, bool d, bool mf, bool lmf, bool scc, float zed, float mfzed, float lmfzed, float sc)
+    _surface_p(bool v, bool d, bool mf, bool lmf, bool rc, float zed, float mfzed, float lmfzed, float r)
     {
       valid = v;
       discovered = d;
       median_filtered = mf;
       layer_median_filtered = lmf;
-      slope_change_calculated = scc;
+      roughness_calculated = rc;
       z = zed;
       median_filtered_z = mfzed;
       layer_median_filtered_z = lmfzed;
-      slope_change = sc;
+      roughness = r;
     }
     void insert_confident_z(confident_z cz)
     {
@@ -99,6 +99,7 @@ private:
   void _compute_dense_descriptors();
   void _reallocate_cache();
 public:
+  vector < pair< Point3f, Point3f > > search_space;
   Stereo();
   Stereo(FileStorage& fs, JPP_Config& config);
   Stereo& operator=(Stereo& s);
@@ -119,21 +120,23 @@ public:
   bool find_surface(int ix, int iy, float range);
   Point3f median_filter(int ix, int iy, int neighbor_window_size);
   Point3f layer_median_filter(int ix, int iy, int neighbor_window_size);
-  float change_in_slope(Point3f p);
-  float change_in_slope(int ix, int iy);
+  float roughness(Point3f p);
+  float roughness(int ix, int iy);
   bool conf_negative(const Point3f p);
   void calc_z_range(const Point3f p, float *z_min, float *z_max);
   bool orientation_valid(Eigen::MatrixXf *points);
   bool is_obstacle_free_region(const Point3f p);
   bool is_empty_col(const Point3f p);
   bool is_bot_clear(const Point3f p, float safe_radius, float inc, bool col_check);
-  float roughness(const Point3f p, float safe_radius, float inc, bool col_check);
+  float traversability(const Point3f p, float safe_radius, float inc, bool col_check);
   bool is_bot_clear_blind_ground(const Point3f p, float safe_radius, float inc, bool col_check);
   vector < pair< Point3f, float > > get_surface_points();
   vector < pair< Point3f, float > > get_surface_checks();
   int compute_disparity(Point p, int ndisp, int w);
   void compute_disparity_map(int ndisp, int w);
   void jpp_visualizations(Mat& confPos, Mat& confNeg);
+  pair< Mat, Mat> visualize_find_surface(Point3f p, Point3f q);
+  pair< Mat, Mat> visualize_find_surface(int ix, int iy);
   void blend_images(Mat& src1, Mat& src2, float alpha, Mat& dst);
   void update_jpp_config(JPP_Config& config);
   Mat get_img_left();

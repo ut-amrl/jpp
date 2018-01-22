@@ -20,6 +20,33 @@ bool AStarPlanner::inGrid(Point p)
   return (p.x >= 0 && p.x <= max_x && p.y >= -max_y && p.y <= max_y);
 }
 
+float AStarPlanner::turncost(node n, Point successor)
+{
+  if (n.id == -1)
+    return -0.1;
+
+  Point p1 = grid_id[parent[n.id]];
+  Point p2 = grid_id[n.id];
+  Point p3 = successor;
+
+  // printf("p1.x: %d, p1.y: %d\n", p1.x, p1.y);
+  // printf("p2.x: %d, p2.y: %d\n", p2.x, p2.y);
+  // printf("p3.x: %d, p3.y: %d\n", p3.x, p3.y);
+
+  Eigen::Vector2f v1(p2.x - p1.x, p2.y - p1.y);
+  Eigen::Vector2f v2(p3.x - p2.x, p3.y - p2.y);
+
+  // cout << "v1: \n" << v1 << endl;
+  // cout << "v2: \n" << v2 << endl;
+  v1 = v1.normalized();
+  v2 = v2.normalized();
+  // cout << "v1: \n" << v1 << endl;
+  // cout << "v2: \n" << v2 << endl;
+  float cost = fabs((acos(v1.dot(v2))*2)/M_PI);
+  //cout << "turncost: " << cost << endl;
+  return cost;
+}
+
 float AStarPlanner::L1Dist(Point p, Point q)
 {
   float s = fabs(p.x - q.x) + fabs(p.y - q.y);
@@ -100,6 +127,13 @@ void AStarPlanner::findPath(Stereo* stereo)
   for (;!open_list.empty() && !stop;) {
     ito = open_list.begin();
     node q = *ito;
+    // if (closed_list_x.find(q.p.x) != closed_list_x.end() &&
+    //     closed_list_y.find(q.p.y) != closed_list_y.end())
+    // {
+    //   cout << "open list contains closed list!" << endl;
+    //   open_list.erase(ito);
+    //   continue;
+    // }
     closed_list_x.insert(q.p.x);
     closed_list_y.insert(q.p.y);
     open_list.erase(ito);
@@ -142,12 +176,12 @@ void AStarPlanner::findPath(Stereo* stereo)
       Point3f pt3d = Point3f((float)cur_pt.x/1000.,(float)cur_pt.y/1000.,0);
       
       //obstical check within grid
-      float roughness = 0;
+      float traversability = 0;
       if (cur_pt.x >= start.p.x)
       {
-        roughness = stereo->roughness(pt3d, (float)safe_radius/1000., (float)inc/1000., !convex_world);
-        //printf("roughness: %f\n", roughness);
-        if (roughness == -1)
+        traversability = stereo->traversability(pt3d, (float)safe_radius/1000., (float)inc/1000., !convex_world);
+        //printf("traversability: %f\n", traversability);
+        if (traversability == -1)
         {
           continue;
         }
@@ -171,10 +205,12 @@ void AStarPlanner::findPath(Stereo* stereo)
         stop = true;
         break;
       }
+
       // update scores of successor node
-      suc.g = q.g + L2Dist(suc.p, q.p); //+ roughness*100.0;
-      //suc.g = q.g + roughness*500.0;
-      suc.h = L1Dist(end.p, cur_pt); //+ dist_to_prevPath(cur_pt)*1.1;
+      //suc.g = q.g + L2Dist(suc.p, q.p) + turncost(q, suc.p)*float(inc);
+      suc.g = q.g + L2Dist(suc.p, q.p);// + traversability*2.0;
+      //cout << "movment cost: " << suc.g << endl << flush;
+      suc.h = L2Dist(end.p, cur_pt); //+ dist_to_prevPath(cur_pt)*1.5;
       suc.f = suc.g + suc.h;
       
       ito = open_list.find(suc);
@@ -200,6 +236,14 @@ void AStarPlanner::findPath(Stereo* stereo)
       if (norm(suc.p - end.p) < mindist) {
         mindist = norm(suc.p - end.p);
         closestnode = suc;
+      }
+
+      if(x >= 10000)
+      {
+        //stop = true;
+        cerr << "map maxed out!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" << endl << flush;
+        setPath(start);
+        return;
       }
     }
   }

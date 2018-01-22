@@ -399,6 +399,17 @@ bool Stereo::find_surface(int ix, int iy, float range)
   float z_min = center - (range/2.0);
   float z_max = center + (range/2.0);
 
+  /////////////////////////////////////////
+  Point3f lineS = surface_point(ix, iy);
+  lineS.z = z_min;
+  Point3f lineE = surface_point(ix, iy);
+  lineE.z = z_max;
+
+  search_space.push_back(make_pair(lineS, lineE));
+
+  //visualize_find_surface(lineS, lineE);
+  /////////////////////////////////////////
+
   //check that zmin and zmax don't overlap
   if (z_min >= z_max)
   {
@@ -446,6 +457,8 @@ bool Stereo::find_surface(int ix, int iy, float range)
       }
     }
   }
+
+  //visualize_find_surface(ix, iy);
   
   if (num_in_image == 0 || min_cost > _jpp_config.CONF_POS_THRESH)
   {
@@ -657,19 +670,19 @@ Point3f Stereo::layer_median_filter(int ix, int iy, int neighbor_window_size)
   return surface_point(ix, iy);
 }
 
-float Stereo::change_in_slope(Point3f p)
+float Stereo::roughness(Point3f p)
 {
   int ix, iy;
   surface_index(p, &ix, &iy);
-  return change_in_slope(ix, iy);
+  return roughness(ix, iy);
 }
 
-float Stereo::change_in_slope(int ix, int iy)
+float Stereo::roughness(int ix, int iy)
 {
   //check if already calculated
-  if (surface[ix][iy].slope_change_calculated)
+  if (surface[ix][iy].roughness_calculated)
   {
-    return surface[ix][iy].slope_change;
+    return surface[ix][iy].roughness;
   }
 
   int x_min, unimportant_y;
@@ -724,8 +737,8 @@ float Stereo::change_in_slope(int ix, int iy)
     }
   }
 
-  surface[ix][iy].slope_change = greatest_slope_change;
-  surface[ix][iy].slope_change_calculated = true;
+  surface[ix][iy].roughness = greatest_slope_change;
+  surface[ix][iy].roughness_calculated = true;
 
   //visualize
   Point ptl = project_point_cam(surface_point(ix, iy), 0);
@@ -942,7 +955,7 @@ bool Stereo::is_bot_clear(const Point3f p, float safe_radius, float inc, bool co
   return isFree;
 }
 
-float Stereo::roughness(const Point3f p, float safe_radius, float inc, bool col_check)
+float Stereo::traversability(const Point3f p, float safe_radius, float inc, bool col_check)
 {
   float sum = 0;
   float num = 0;
@@ -951,12 +964,12 @@ float Stereo::roughness(const Point3f p, float safe_radius, float inc, bool col_
     for (float x = 0; x <= safe_radius; x += inc) {
       Point3f q(p.x+x,p.y+y,0.0);
 
-      float slope_change = change_in_slope(q);
-      if (slope_change > 1.1)//0.8)//1.3
+      float r = roughness(q);
+      if (r > 1.1)//0.8)//1.3
       {
         return -1.0;
       }
-      sum += slope_change;
+      sum += r;
       num++;
     }
   }
@@ -965,7 +978,7 @@ float Stereo::roughness(const Point3f p, float safe_radius, float inc, bool col_
   {
     return sum/num;
   }
-  printf("not enough points for stereo::roughness\n");
+  printf("not enough points for stereo::traversability\n");
   return -1.0;
 }
 
@@ -991,11 +1004,11 @@ vector < pair< Point3f, float > > Stereo::get_surface_points(){
   for (uint i = 0; i < surface.size(); i++){
     for (uint j = 0; j < surface[i].size(); j++)
     {
-      if (surface[i][j].discovered && surface[i][j].slope_change_calculated)
+      if (surface[i][j].discovered && surface[i][j].roughness_calculated)
       {
         pair< Point3f, float > sp;
         sp.first = surface_point(i, j);
-        sp.second = surface[i][j].slope_change;
+        sp.second = surface[i][j].roughness;
         surface_points.push_back(sp);
       }
     }
@@ -1091,6 +1104,61 @@ void Stereo::jpp_visualizations(Mat& confPos, Mat& confNeg)
   //     }
   //   }
   // }
+}
+
+pair< Mat, Mat> Stereo::visualize_find_surface(Point3f p, Point3f q)
+{
+  Scalar green = Scalar(0, 255, 0);
+
+  Point lp = project_point_cam(p, 0);
+  Point lq = project_point_cam(q, 0);
+
+  Mat left_search_space = _img_left;
+  cvtColor(left_search_space, left_search_space, CV_GRAY2BGR);
+  line(left_search_space, lp, lq, green, 2, 8, 0);
+
+  Point rp = project_point_cam(p, 1);
+  Point rq = project_point_cam(q, 1);
+
+  Mat right_search_space = _img_right;
+  cvtColor(right_search_space, right_search_space, CV_GRAY2BGR);
+  line(right_search_space, rp, rq, green, 2, 8, 0);
+
+  imshow("left_search_space1", left_search_space);
+  imshow("right_search_space1", right_search_space);
+
+  waitKey(30);
+
+  return make_pair(left_search_space, right_search_space);
+}
+
+pair< Mat, Mat> Stereo::visualize_find_surface(int ix, int iy)
+{
+  Point3f search_point = surface_point(ix, iy);
+
+  Mat left_search_space = _img_left;
+  Mat right_search_space = _img_right;
+  cvtColor(left_search_space, left_search_space, CV_GRAY2BGR);
+  cvtColor(right_search_space, right_search_space, CV_GRAY2BGR);
+  for(uint i = 0; i < surface[ix][iy].confident_Zvalues.size(); i++)
+  {
+    search_point.z = surface[ix][iy].confident_Zvalues[i].z;
+    Point lp = project_point_cam(search_point, 0);
+    Point rp = project_point_cam(search_point, 1);
+    int cost = (int)(surface[ix][iy].confident_Zvalues[i].cost * 200.0);
+    if (cost > 255)
+      cost = 255;
+    Scalar color = Scalar(cost, 0, 255 - cost);
+    circle(left_search_space, lp, 2, color, -1, 8, 0);
+    circle(right_search_space, rp, 2, color, -1, 8, 0);
+  }
+
+  imshow("left_search_space2", left_search_space);
+  imshow("right_search_space2", right_search_space);
+
+  waitKey(30);
+
+  return make_pair(left_search_space, right_search_space);
 }
 
 void Stereo::blend_images(Mat& src1, Mat& src2, float alpha, Mat& dst)

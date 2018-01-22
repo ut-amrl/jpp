@@ -37,6 +37,7 @@ ofstream data_log;
 
 float prev_y_total = 0;
 vector< Point > prevPath;
+bool path_invalid = true;
 
 //publishers not in main
 ros::Publisher pub_path;
@@ -52,27 +53,29 @@ void update_planned_path(vector< Point > path){
   real_path.header.frame_id = "jackal";
   real_path.header.stamp = ros::Time::now();
 
-  bool path_invalid = true;
+  path_invalid = true;
 
   float y_total = 0;
   for(uint32_t i = 0; i < path.size(); i++)
   {
     if (path[i].x > jpp_config.START_X)
+    {
       path_invalid = false;
-    //need to divide by 1000 to convert from mm to m
-    geometry_msgs::PoseStamped s_pose;
-    s_pose.header = real_path.header;
-    s_pose.pose.position.x = path[i].x / 1000.0;
-    s_pose.pose.position.y = path[i].y / 1000.0;
-    s_pose.pose.position.z = 0;
-    s_pose.pose.orientation.x = 0;
-    s_pose.pose.orientation.y = 0;
-    s_pose.pose.orientation.z = 0;
-    s_pose.pose.orientation.w = 1;
+      //need to divide by 1000 to convert from mm to m
+      geometry_msgs::PoseStamped s_pose;
+      s_pose.header = real_path.header;
+      s_pose.pose.position.x = path[i].x / 1000.0;
+      s_pose.pose.position.y = path[i].y / 1000.0;
+      s_pose.pose.position.z = 0;
+      s_pose.pose.orientation.x = 0;
+      s_pose.pose.orientation.y = 0;
+      s_pose.pose.orientation.z = 0;
+      s_pose.pose.orientation.w = 1;
 
-    y_total += s_pose.pose.position.y;
+      y_total += s_pose.pose.position.y;
 
-    real_path.poses.push_back(s_pose);
+      real_path.poses.push_back(s_pose);
+    }
   }
 
   if (path_invalid)//if the path is not valid stop, doing this by making the path just the 0 pose
@@ -131,7 +134,7 @@ sensor_msgs::PointCloud update_surface(vector< pair< Point3f, float > > points)
     // if (round(points[i].first.y * 1000.0) != 0.0)
     //   continue;
     geometry_msgs::Point32 p;
-    p.x = points[i].first.x - 0.02;
+    p.x = points[i].first.x;
     p.y = points[i].first.y;
     p.z = points[i].first.z;
 
@@ -193,8 +196,14 @@ void imgCallback(const sensor_msgs::ImageConstPtr& msg_left, const sensor_msgs::
   jpp_obj->load_images(img_left, img_right);
   
   if (strcmp(output, "astar") == 0) {
+    //jpp_obj->start_search_space_viz();
     jpp_obj->start_disparity_counter();
-    vector< Point > path = jpp_obj->plan_astar(prevPath);
+    vector< Point > path;
+    if (path_invalid)
+      path = jpp_obj->plan_astar();
+    else
+      path = jpp_obj->plan_astar(prevPath);
+    //vector< Point > path = jpp_obj->plan_astar(prevPath);
     prevPath = path;
     int disparity_count = jpp_obj->get_disparity_count();
     printf("jpp num_disparity_checks: %d, ", disparity_count);
@@ -216,6 +225,8 @@ void imgCallback(const sensor_msgs::ImageConstPtr& msg_left, const sensor_msgs::
     update_planned_path(jpp_obj->getPath());
     sensor_msgs::PointCloud point_cloud = update_surface(jpp_obj->get_surface_points());
     update_surface_checks(jpp_obj->get_surface_checks());
+
+    //jpp_obj->search_space_viz();
 
     jpp::rmse srv;
     srv.request.L = *msg_left;

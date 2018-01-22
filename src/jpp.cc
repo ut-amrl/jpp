@@ -163,6 +163,63 @@ int JPP::get_disparity_count()
   _stereo->get_disparity_count();
 }
 
+void JPP::start_search_space_viz()
+{
+  _stereo->search_space.clear();
+}
+
+pair< Mat, Mat > JPP::search_space_viz()
+{
+  Mat left_search_space = _stereo->get_img_left();
+  Mat right_search_space = _stereo->get_img_right();
+  cvtColor(left_search_space, left_search_space, CV_GRAY2BGR);
+  cvtColor(right_search_space, right_search_space, CV_GRAY2BGR);
+
+  int inc = 5;
+  int red = 0;
+  int green = 255;
+  int blue = 0;
+
+  for (uint i = 0; i < _stereo->search_space.size(); i++)
+  {
+    Scalar color = Scalar(blue, green, red);
+
+    if (red == 0)
+    {
+      green -= inc;
+      blue += inc;
+    }
+    if (green == 0)
+    {
+      blue -= inc;
+      red += inc;
+    }
+    if (blue == 0)
+    {
+      red -= inc;
+      green += inc;
+    }
+    //printf("r: %d, g: %d, b: %d\n", red, green, blue);
+
+    Point lp = _stereo->project_point_cam(_stereo->search_space[i].first, 0);
+    Point lq = _stereo->project_point_cam(_stereo->search_space[i].second, 0);
+
+    line(left_search_space, lp, lq, color, 2, 8, 0);
+
+    Point rp = _stereo->project_point_cam(_stereo->search_space[i].first, 1);
+    Point rq = _stereo->project_point_cam(_stereo->search_space[i].second, 1);
+
+    line(right_search_space, rp, rq, color, 2, 8, 0);
+  }
+
+  imshow("left_search_space", left_search_space);
+  imshow("right_search_space", right_search_space);
+
+  waitKey(30);
+
+  return make_pair(left_search_space, right_search_space);
+}
+
 pair< Mat, Mat > JPP::visualize_jpp(const char* outfile)
 {
   Mat vis_path = _stereo->get_img_left();
