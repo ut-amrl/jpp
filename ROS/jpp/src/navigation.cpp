@@ -134,7 +134,7 @@ sensor_msgs::PointCloud update_surface(vector< pair< Point3f, float > > points)
     // if (round(points[i].first.y * 1000.0) != 0.0)
     //   continue;
     geometry_msgs::Point32 p;
-    p.x = points[i].first.x;
+    p.x = points[i].first.x; //- 0.02;//ofset for visualization
     p.y = points[i].first.y;
     p.z = points[i].first.z;
 
