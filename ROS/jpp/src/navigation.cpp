@@ -60,7 +60,8 @@ void update_planned_path(vector< Point > path){
   {
     if (path[i].x > jpp_config.START_X)
     {
-      path_invalid = false;
+      if (path[i].x > jpp_config.START_X + ((jpp_config.MAX_X - jpp_config.START_X)*0.2))
+        path_invalid = false;
       //need to divide by 1000 to convert from mm to m
       geometry_msgs::PoseStamped s_pose;
       s_pose.header = real_path.header;

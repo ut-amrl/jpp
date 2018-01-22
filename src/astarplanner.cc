@@ -130,7 +130,7 @@ void AStarPlanner::findPath(Stereo* stereo)
     // if (closed_list_x.find(q.p.x) != closed_list_x.end() &&
     //     closed_list_y.find(q.p.y) != closed_list_y.end())
     // {
-    //   cout << "open list contains closed list!" << endl;
+    //   //cout << "open list contains closed list!" << endl;
     //   open_list.erase(ito);
     //   continue;
     // }
@@ -138,11 +138,9 @@ void AStarPlanner::findPath(Stereo* stereo)
     closed_list_y.insert(q.p.y);
     open_list.erase(ito);
     Point qcl = clCoord(q.p);
-    /*
-    if ((int)closed_list.at<uchar>(qcl) == 255) {
-      break;
-    }
-    */
+    // if ((int)closed_list.at<uchar>(qcl) == 255) {
+    //   break;
+    // }
     //world->img_world.at<Vec3b>(q_sim_coord) = Vec3b(0,0,255);
     //circle(closed_list, qcl, 1, Scalar(255), -1, 8, 0);
     closed_list.at<uchar>(qcl) = 255;
@@ -162,8 +160,8 @@ void AStarPlanner::findPath(Stereo* stereo)
       if (!inGrid(cur_pt)) {
         continue;
       }
-      Point curpt_cl = clCoord(cur_pt);
-      // if (int)closed_list.at<uchar>(curpt_cl) == 255) {
+      // Point curpt_cl = clCoord(cur_pt);
+      // if ((int)closed_list.at<uchar>(curpt_cl) == 255) {
       //   //cout << "closed " << cur_pt << endl;
       //   continue;
       // }
@@ -208,9 +206,9 @@ void AStarPlanner::findPath(Stereo* stereo)
 
       // update scores of successor node
       //suc.g = q.g + L2Dist(suc.p, q.p) + turncost(q, suc.p)*float(inc);
-      suc.g = q.g + L2Dist(suc.p, q.p);// + traversability*2.0;
+      suc.g = q.g + L2Dist(suc.p, q.p); //+ traversability*2.0;
       //cout << "movment cost: " << suc.g << endl << flush;
-      suc.h = L2Dist(end.p, cur_pt); //+ dist_to_prevPath(cur_pt)*1.5;
+      suc.h = L1Dist(end.p, cur_pt) + dist_to_prevPath(cur_pt)*1.1;
       suc.f = suc.g + suc.h;
       
       ito = open_list.find(suc);
