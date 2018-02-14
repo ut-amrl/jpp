@@ -4,6 +4,12 @@ AStarPlanner::AStarPlanner(JPP_Config& conf)
 {
   closed_list = Mat(1000, 1000, CV_8UC1, Scalar(0));
   _config = conf;
+  closedList = vector< int >((_config.MAX_X/_config.GRID_SIZE) * 
+    ((_config.MAX_Y*2)/_config.GRID_SIZE), 0);
+  // node init;
+  // init.id = -1;
+  // openListPointer = vector< node >((_config.MAX_X/_config.GRID_SIZE) * 
+  //   ((_config.MAX_Y*2)/_config.GRID_SIZE), init);
   prevPath = {};
 }
 
@@ -11,7 +17,18 @@ AStarPlanner::AStarPlanner(JPP_Config& conf, vector< Point > new_prevPath)
 {
   closed_list = Mat(1000, 1000, CV_8UC1, Scalar(0));
   _config = conf;
+  closedList = vector< int >((_config.MAX_X/_config.GRID_SIZE) * 
+    ((_config.MAX_Y*2)/_config.GRID_SIZE), 0);
+  // node init;
+  // init.id = -1;
+  // openListPointer = vector< node >((_config.MAX_X/_config.GRID_SIZE) * 
+  //   ((_config.MAX_Y*2)/_config.GRID_SIZE), init);
   prevPath = new_prevPath;
+}
+
+int AStarPlanner::pointToIndex(Point p)
+{
+  return (p.x/inc)*((2*max_y)/inc) + (p.y + max_y)/inc;
 }
 
 bool AStarPlanner::inGrid(Point p)
@@ -108,8 +125,39 @@ Point AStarPlanner::clCoord(Point p)
   return r;
 }
 
+void AStarPlanner::printOpenList()
+{
+  // for(int i = 0; i < open_list.size(); i++)
+  // {
+  //   printf("(%f, %f, %f), ", open_list[i].p.x, open_list[i].p.y, open_list[i].p.z);
+  // }
+  // printf("\n");
+
+  for (std::multiset<node>::const_iterator i = open_list.begin(); i != open_list.end(); ++i)
+  {
+    printf("(%d, %d), ", (*i).p.x, (*i).p.y);
+  }
+  printf("\n");
+}
+void AStarPlanner::printClosedList()
+{
+  for (int i = 0; i < max_x; i += inc)
+  {
+    for (int j = -max_y; j < max_y; j += inc)
+    {
+      Point p;
+      p.x = i;
+      p.y = j;
+      //printf("%d, ", closedList[pointToIndex(p)]);
+    }
+    printf("\n");
+  }
+  printf("\n");
+}
+
 void AStarPlanner::findPath(Stereo* stereo)
 {
+
   node robotCenter;
   robotCenter.p.x = 0;
   robotCenter.p.y = 0;
@@ -134,15 +182,35 @@ void AStarPlanner::findPath(Stereo* stereo)
     //   open_list.erase(ito);
     //   continue;
     // }
+    
+    //printOpenList();
     closed_list_x.insert(q.p.x);
     closed_list_y.insert(q.p.y);
+
+    // if (closedList[pointToIndex(q.p)] == 0)
+    // {
+    // printf("x: %d, y: %d\n", q.p.x/inc, (q.p.y + max_y)/inc);
+    // printClosedList();
+    // printf("cl: %d\n", closedList[pointToIndex(q.p)]);
+    // closedList[pointToIndex(q.p)] = 1;
+    // printClosedList();
+    // printf("cl: %d\n", closedList[pointToIndex(q.p)]);
+    // }
+
+    // node empty;
+    // empty.id = -1;
+    // openListPointer[pointToIndex(q.p)] = empty;
     open_list.erase(ito);
     Point qcl = clCoord(q.p);
-    /*
+
+    // if (closedList[pointToIndex(q.p)] == 1)
+    // {
+    //   continue;
+    // }
+    // closedList[pointToIndex(q.p)] = 1;
     if ((int)closed_list.at<uchar>(qcl) == 255) {
-      break;
+      continue;
     }
-    */
     //world->img_world.at<Vec3b>(q_sim_coord) = Vec3b(0,0,255);
     //circle(closed_list, qcl, 1, Scalar(255), -1, 8, 0);
     closed_list.at<uchar>(qcl) = 255;
@@ -163,15 +231,19 @@ void AStarPlanner::findPath(Stereo* stereo)
         continue;
       }
       Point curpt_cl = clCoord(cur_pt);
-      // if (int)closed_list.at<uchar>(curpt_cl) == 255) {
-      //   //cout << "closed " << cur_pt << endl;
-      //   continue;
-      // }
-      if (closed_list_x.find(cur_pt.x) != closed_list_x.end() &&
-        closed_list_y.find(cur_pt.y) != closed_list_y.end())
-      {
+      if ((int)closed_list.at<uchar>(curpt_cl) == 255) {
+        //cout << "closed " << cur_pt << endl;
         continue;
       }
+      // if (closed_list_x.find(cur_pt.x) != closed_list_x.end() &&
+      //   closed_list_y.find(cur_pt.y) != closed_list_y.end())
+      // {
+      //   continue;
+      // }
+      // if (closedList[pointToIndex(cur_pt)] == 1)
+      // {
+      //   continue;
+      // }
       // obstacle check
       Point3f pt3d = Point3f((float)cur_pt.x/1000.,(float)cur_pt.y/1000.,0);
       
@@ -214,8 +286,18 @@ void AStarPlanner::findPath(Stereo* stereo)
       suc.f = suc.g + suc.h;
       
       ito = open_list.find(suc);
+      // if (openListPointer[pointToIndex(cur_pt)].id != -1)
+      // {
+      //   printf("should be in open list\n");
+      //   ito = open_list.find(openListPointer[pointToIndex(cur_pt)]);
+      // }
+      // else
+      // {
+      //   ito = open_list.end();
+      // }
       float eps = 1e-5;
       if (ito != open_list.end()) {
+        printf("updated open_list for (%d, %d)\n", (*ito).p.x, (*ito).p.y);
         node n = *ito;
         if (suc.g < n.g) {
           suc.id = n.id;
@@ -231,6 +313,8 @@ void AStarPlanner::findPath(Stereo* stereo)
         parent[suc.id] = q.id;
 
         open_list.insert(suc);
+        //openListPointer[pointToIndex(suc.p)] = suc;
+        //printf("no update, \n");
       }
       
       if (norm(suc.p - end.p) < mindist) {

@@ -964,6 +964,12 @@ float Stereo::traversability(const Point3f p, float safe_radius, float inc, bool
     for (float x = 0; x <= safe_radius; x += inc) {
       Point3f q(p.x+x,p.y+y,0.0);
 
+      if (q.x < 0 || q.x > _jpp_config.MAX_X/1000.0 || 
+        q.y < -_jpp_config.MAX_Y/1000.0 || q.y > _jpp_config.MAX_Y/1000.0)
+      {
+        continue;
+      }
+
       float r = roughness(q);
       if (r > 1.1)//0.8)//1.3
       {

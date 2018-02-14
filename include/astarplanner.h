@@ -17,9 +17,12 @@ private:
       return (p.x == rhs.p.x && p.y == rhs.p.y);
     }
   };
+  vector< int > closedList;
+  // vector< node > openListPointer;
   node start, end;
   int max_x, max_y, inc;
   bool inGrid(Point p);
+  int pointToIndex(Point p);
   float turncost(node n, Point successor);
   float L1Dist(Point p, Point q);
   float L2Dist(Point p, Point q);
@@ -41,6 +44,8 @@ public:
   AStarPlanner(JPP_Config& conf);
   AStarPlanner(JPP_Config& conf, vector< Point > new_prevPath);
   void setParams(Point s, Point e, int my, int i, int r, int bh, bool cw);
+  void printOpenList();
+  void printClosedList();
   void findPath(Stereo* stereo);
   void setPath(node n);
   vector< Point > getPath();
