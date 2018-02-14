@@ -742,12 +742,15 @@ float Stereo::roughness(int ix, int iy)
 
   //visualize
   Point ptl = project_point_cam(surface_point(ix, iy), 0);
-  Point ptr = project_point_cam(surface_point(ix, iy), 1);
-  int idx = ptl.y * _img_left.cols + ptl.x;
-  _obstacleCache[idx] = (int)(1.0 + greatest_slope_change*200.0);
-  if (_obstacleCache[idx] > 255)
+  //Point ptr = project_point_cam(surface_point(ix, iy), 1);
+  if (in_img(ptl.x, ptl.y))
   {
-    _obstacleCache[idx] = 255;
+    int idx = ptl.y * _img_left.cols + ptl.x;
+    _obstacleCache[idx] = (int)(1.0 + greatest_slope_change*200.0);
+    if (_obstacleCache[idx] > 255)
+    {
+      _obstacleCache[idx] = 255;
+    }
   }
 
   return greatest_slope_change;
@@ -971,7 +974,7 @@ float Stereo::traversability(const Point3f p, float safe_radius, float inc, bool
       }
 
       float r = roughness(q);
-      if (r > 1.1)//0.8)//1.3
+      if (r > 1.8)//0.8)//1.3
       {
         return -1.0;
       }

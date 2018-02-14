@@ -178,7 +178,7 @@ void AStarPlanner::findPath(Stereo* stereo)
     // if (closed_list_x.find(q.p.x) != closed_list_x.end() &&
     //     closed_list_y.find(q.p.y) != closed_list_y.end())
     // {
-    //   cout << "open list contains closed list!" << endl;
+    //   //cout << "open list contains closed list!" << endl;
     //   open_list.erase(ito);
     //   continue;
     // }
@@ -280,9 +280,9 @@ void AStarPlanner::findPath(Stereo* stereo)
 
       // update scores of successor node
       //suc.g = q.g + L2Dist(suc.p, q.p) + turncost(q, suc.p)*float(inc);
-      suc.g = q.g + L2Dist(suc.p, q.p);// + traversability*2.0;
+      suc.g = q.g + L2Dist(suc.p, q.p); //+ traversability*2.0;
       //cout << "movment cost: " << suc.g << endl << flush;
-      suc.h = L2Dist(end.p, cur_pt); //+ dist_to_prevPath(cur_pt)*1.5;
+      suc.h = L1Dist(end.p, cur_pt) + dist_to_prevPath(cur_pt)*1.1;
       suc.f = suc.g + suc.h;
       
       ito = open_list.find(suc);

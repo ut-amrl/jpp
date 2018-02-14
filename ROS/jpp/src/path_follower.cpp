@@ -39,9 +39,9 @@ ros::Publisher path_pub;
 double forward_vel = 0., rot_vel = 0.;
 double trans_accel = 0.025; // forward acceleration
 double trans_decel = 0.1; // forward deceleration
-double rot_accel = 0.05; // rotational acceleration
+double rot_accel = 0.1;//0.05; // rotational acceleration
 float max_forward_vel = 0.2;//0.6; // maximum forward velocity
-double max_rot_vel = 0.5;//1.3; // maximum rotational velocity
+double max_rot_vel = 1.0;//1.3; // maximum rotational velocity
 float dist_threshold = 0.045;//0.045;//near enough distance
 
 void newPathCallBack(const nav_msgs::Path::ConstPtr& p){
@@ -167,7 +167,7 @@ pair< double, double > goto_pose(geometry_msgs::Pose pose)
 
   geometry_msgs::Pose gPose = transform_pose(pose);
 
-  velocity.second = (0.8 * angle_to_point(gPose.position));
+  velocity.second = (3.0 * angle_to_point(gPose.position));
   if (velocity.second > 0)
     velocity.second = min(velocity.second, max_rot_vel);
   else
@@ -215,7 +215,7 @@ void safeNavigate(const sensor_msgs::JoyConstPtr& msg) {
     //desired_vel = stopInFrontMode(side, front);
   } else if (triangle) {
     desired_vel = follow_path();
-    ROS_INFO("wanted V: %f, W: %f", forward_vel, rot_vel);
+    ROS_INFO("wanted V: %f, W: %f", desired_vel.first, desired_vel.second);
     //desired_vel = autoNavigateMode(front); // navigation doesn't work yet
   } else if (X) {
     //desired_vel = obstacleAvoidMode(front);
