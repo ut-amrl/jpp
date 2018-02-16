@@ -116,6 +116,50 @@ bool cw)
   safe_radius = r;
   convex_world = cw;
   bot_height = bh;
+
+  Point goal = e;
+  if (goal.x > _config.MAX_X) //when past grid
+  {
+    printf("goal.x: %d, goal.y: %d\n", goal.x, goal.y);
+    //project goal to edge of planner grid
+    int y_intercept = (int)round(((float)goal.y*(float)_config.MAX_X)/(float)goal.x);
+    printf("y_intercept: %d\n", y_intercept);
+    if (y_intercept > -_config.MAX_Y && y_intercept < _config.MAX_Y)
+    {
+      end.p.x = _config.MAX_X;
+      end.p.y = y_intercept;
+    }
+    else
+    {
+      printf("bad\n");
+      if (goal.y > 0)
+      {
+        path.push_back(Point(0, _config.MAX_X));
+      }
+      else
+      {
+        path.push_back(Point(0, -_config.MAX_X));
+      }
+    }
+  }
+  else if (goal.x >= _config.START_X && goal.x <= _config.MAX_X && // when in grid
+    goal.y >= -_config.MAX_Y && goal.y <= _config.MAX_Y)
+  {
+    //do nothing
+    printf("good\n");
+  }
+  else 
+  {
+    printf("duno\n");
+    if (goal.y > 0)
+    {
+      path.push_back(Point(0, _config.MAX_X));
+    }
+    else
+    {
+      path.push_back(Point(0, -_config.MAX_X));
+    }
+}
 }
 
 Point AStarPlanner::clCoord(Point p)
@@ -139,6 +183,7 @@ void AStarPlanner::printOpenList()
   }
   printf("\n");
 }
+
 void AStarPlanner::printClosedList()
 {
   for (int i = 0; i < max_x; i += inc)

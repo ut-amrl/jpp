@@ -124,6 +124,21 @@ vector< Point > JPP::plan_astar()
   return _path;
 }
 
+vector< Point > JPP::plan_astar(float x, float y)
+{
+  _reset();
+  AStarPlanner planner(_jpp_config);
+  Point start(_jpp_config.START_X, 0);
+  Point end((int)round(x*1000.0), (int)round(y*1000.0));
+  bool convex_world = _jpp_config.CONVEX_WORLD;
+  int safe_radius = max(_jpp_config.BOT_LENGTH/2, _jpp_config.BOT_WIDTH/2);
+  int inc = _jpp_config.GRID_SIZE;
+  planner.setParams(start, end, _jpp_config.MAX_Y, inc, safe_radius, _jpp_config.BOT_HEIGHT, convex_world);
+  planner.findPath(_stereo);
+  _path = planner.getPath();
+  return _path;
+}
+
 vector< Point > JPP::plan_astar(vector< Point > prevPath)
 {
   _reset();

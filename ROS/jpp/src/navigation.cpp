@@ -34,6 +34,7 @@ int d = 0;
 int counter = 0;
 int print_counter = 0;
 ofstream data_log;
+geometry_msgs::Pose global_waypoint;
 
 float prev_y_total = 0;
 vector< Point > prevPath;
@@ -200,10 +201,11 @@ void imgCallback(const sensor_msgs::ImageConstPtr& msg_left, const sensor_msgs::
     //jpp_obj->start_search_space_viz();
     jpp_obj->start_disparity_counter();
     vector< Point > path;
-    if (path_invalid)
-      path = jpp_obj->plan_astar();
-    else
-      path = jpp_obj->plan_astar(prevPath);
+    path = jpp_obj->plan_astar(global_waypoint.position.x, global_waypoint.position.y);
+    // if (path_invalid)
+    //   path = jpp_obj->plan_astar();
+    // else
+    //   path = jpp_obj->plan_astar(prevPath);
     //vector< Point > path = jpp_obj->plan_astar(prevPath);
     prevPath = path;
     int disparity_count = jpp_obj->get_disparity_count();
@@ -283,6 +285,11 @@ void imgCallback(const sensor_msgs::ImageConstPtr& msg_left, const sensor_msgs::
   waitKey(30);
 }
 
+void waypointCallback(const geometry_msgs::Pose& pose)
+{
+  global_waypoint = pose;
+}
+
 void paramsCallback(jpp::ParamsConfig &conf, uint32_t level) {
   jpp_config.DR = conf.DR;
   jpp_config.DQ = conf.DQ;
@@ -316,6 +323,7 @@ int main(int argc, char** argv) {
   pub_path = nh.advertise<nav_msgs::Path>("/jackal/planned_path", 1);
   pub_surface_point_cloud = nh.advertise<sensor_msgs::PointCloud>("/jackal/surface", 1);
   pub_surface_check_point_cloud = nh.advertise<sensor_msgs::PointCloud>("/jackal/surface_check", 1);
+  ros::Subscriber way_point_sub = nh.subscribe("/jpp/waypoint", 1, waypointCallback);
   rmse_client = nh.serviceClient<jpp::rmse>("/stereo_dense_reconstruction/rootMeanSquareError");
   
   const char* left_img_topic;
@@ -353,6 +361,15 @@ int main(int argc, char** argv) {
   jpp_config = JPP_Config(cf);
   
   jpp_obj = new JPP(calib_file, cf);
+
+  //intitulize global way point
+  global_waypoint.position.x = ((float)jpp_config.MAX_X)/1000.0;
+  global_waypoint.position.y = 0;
+  global_waypoint.position.z = 0;
+  global_waypoint.orientation.x = 0;
+  global_waypoint.orientation.y = 0;
+  global_waypoint.orientation.z = 0;
+  global_waypoint.orientation.w = 1;
   
   message_filters::Subscriber<sensor_msgs::Image> sub_img_left(nh, left_img_topic, 1);
   message_filters::Subscriber<sensor_msgs::Image> sub_img_right(nh, right_img_topic, 1);
