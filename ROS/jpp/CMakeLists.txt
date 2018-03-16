@@ -75,9 +75,9 @@ include_directories(
 rosbuild_add_executable(navigation
   src/navigation.cpp
 )
-target_link_libraries(navigation ${JPP_LIBS} config popt boost_system) #opencv_core3 opencv_imgproc opencv_highgui)
+target_link_libraries(navigation ${JPP_LIBS} config popt boost_system opencv_core3 opencv_imgproc opencv_highgui)
 
 rosbuild_add_executable(path_follower
   src/path_follower.cpp
 )
-target_link_libraries(path_follower ${JPP_LIBS} config popt boost_system) #opencv_core3)
+target_link_libraries(path_follower ${JPP_LIBS} config popt boost_system opencv_core3)

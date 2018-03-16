@@ -43,7 +43,7 @@ Mat JPP::visualize_conf_pos()
   Point end(_jpp_config.MAX_X, _jpp_config.MAX_Y);
   int inc = _jpp_config.GRID_SIZE;
   float safe_radius = (float)max(_jpp_config.BOT_LENGTH/2, _jpp_config.BOT_WIDTH/2)/1000.;
-  //#pragma omp parallel for collapse(2)\
+  //#pragma omp parallel for collapse(2)
   //num_threads(omp_get_max_threads())
   for (int x = start.x; x <= end.x; x += inc) {
     for (int y = start.y; y <= end.y; y += inc) {
@@ -67,7 +67,7 @@ Mat JPP::visualize_conf_neg()
   Point start(_jpp_config.START_X, -_jpp_config.MAX_Y);
   Point end(_jpp_config.MAX_X, _jpp_config.MAX_Y);
   int inc = _jpp_config.GRID_SIZE;
-  //#pragma omp parallel for collapse(3)\
+  //#pragma omp parallel for collapse(3)
   //num_threads(omp_get_max_threads())
   for (int x = start.x; x <= end.x; x += inc) {
     for (int y = start.y; y <= end.y; y += inc) {
@@ -93,7 +93,7 @@ Mat JPP::visualize_empty_cols()
   Point start(_jpp_config.START_X, -_jpp_config.MAX_Y);
   Point end(_jpp_config.MAX_X, _jpp_config.MAX_Y);
   int inc = _jpp_config.GRID_SIZE;
-  //#pragma omp parallel for collapse(3)\
+  //#pragma omp parallel for collapse(3)
   //num_threads(omp_get_max_threads())
   for (int x = start.x; x <= end.x; x += inc) {
     for (int y = start.y; y <= end.y; y += inc) {
@@ -175,7 +175,7 @@ void JPP::start_disparity_counter()
 }
 int JPP::get_disparity_count()
 {
-  _stereo->get_disparity_count();
+  return _stereo->get_disparity_count();
 }
 
 void JPP::start_search_space_viz()
@@ -239,7 +239,7 @@ pair< Mat, Mat > JPP::visualize_jpp(const char* outfile)
 {
   Mat vis_path = _stereo->get_img_left();
   cvtColor(vis_path, vis_path, CV_GRAY2BGR);
-  for (int i = 0; i < _path.size()-1; i++) {
+  for (u_int i = 0; i < _path.size()-1; i++) {
     Point p = _stereo->project_point_cam(Point3f(_path[i].x/1000.,_path[i].y/1000.,0),0);
     Point q = _stereo->project_point_cam(Point3f(_path[i+1].x/1000.,_path[i+1].y/1000.,0),0);
     Scalar green = Scalar(0, 255, 0);

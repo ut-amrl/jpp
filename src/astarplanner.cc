@@ -270,7 +270,7 @@ void AStarPlanner::findPath(Stereo* stereo)
     //neighbours.push_back(Point(-inc,inc));
     //neighbours.push_back(Point(-inc,0));
     //neighbours.push_back(Point(-inc,-inc));
-    for (int i = 0; i < neighbours.size(); i++) {
+    for (u_int i = 0; i < neighbours.size(); i++) {
       Point cur_pt = q.p + neighbours[i];
       if (!inGrid(cur_pt)) {
         continue;
@@ -340,7 +340,8 @@ void AStarPlanner::findPath(Stereo* stereo)
       // {
       //   ito = open_list.end();
       // }
-      float eps = 1e-5;
+
+      //float eps = 1e-5;
       if (ito != open_list.end()) {
         printf("updated open_list for (%d, %d)\n", (*ito).p.x, (*ito).p.y);
         node n = *ito;
@@ -399,7 +400,7 @@ vector< Point > AStarPlanner::getPath()
 int AStarPlanner::getPathLength()
 {
   int length = 0;
-  for (int i = 0; i < path.size()-1; i++) {
+  for (u_int i = 0; i < path.size()-1; i++) {
     Point p = path[i];
     Point q = path[i+1];
     length += norm(p-q);

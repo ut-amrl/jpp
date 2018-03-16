@@ -30,6 +30,7 @@ FileStorage calib_file;
 const char* output = "astar";
 int w = 0;
 int v = 0;
+int t = 0;
 int d = 0;
 int counter = 0;
 int print_counter = 0;
@@ -130,7 +131,7 @@ sensor_msgs::PointCloud update_surface(vector< pair< Point3f, float > > points)
   sensor_msgs::ChannelFloat32 c;
   c.name = "intensity";
 
-  for (int i = 0; i < points.size(); i++)
+  for (u_int i = 0; i < points.size(); i++)
   {
     //filter for one slice
     // if (round(points[i].first.y * 1000.0) != 0.0)
@@ -160,7 +161,7 @@ void update_surface_checks(vector< pair< Point3f, float > > confpos_points)
   sensor_msgs::ChannelFloat32 c;
   c.name = "intensity";
 
-  for (int i = 0; i < confpos_points.size(); i++)
+  for (u_int i = 0; i < confpos_points.size(); i++)
   {
     //filter for one slice
     // if (round(confpos_points[i].first.y * 1000.0) != 0.0)
@@ -226,24 +227,41 @@ void imgCallback(const sensor_msgs::ImageConstPtr& msg_left, const sensor_msgs::
     print_counter++;
 
     update_planned_path(jpp_obj->getPath());
-    sensor_msgs::PointCloud point_cloud = update_surface(jpp_obj->get_surface_points());
-    update_surface_checks(jpp_obj->get_surface_checks());
+
+    sensor_msgs::PointCloud surface_point_cloud;
+    if (v == 1)
+    {
+      surface_point_cloud = update_surface(jpp_obj->get_surface_points());
+      update_surface_checks(jpp_obj->get_surface_checks());
+      pub_surface_point_cloud.publish(surface_point_cloud);
+    }
 
     //jpp_obj->search_space_viz();
 
-    jpp::rmse srv;
-    srv.request.L = *msg_left;
-    srv.request.R = *msg_right;
-    srv.request.pc = point_cloud;
-    if (rmse_client.call(srv))
+    if (t == 1)
     {
-      printf("rmse: %f, %d\n", srv.response.rmse, print_counter);
+      jpp::rmse srv;
+      srv.request.L = *msg_left;
+      srv.request.R = *msg_right;
+
+      if (v == 1)
+      {
+        srv.request.pc = surface_point_cloud;
+      }
+      else
+      {
+        surface_point_cloud = update_surface(jpp_obj->get_surface_points());
+      }
+
+      if (rmse_client.call(srv))
+      {
+        printf("rmse: %f, %d\n", srv.response.rmse, print_counter);
+      }
+      else
+      {
+        printf("rmse: failure, %d\n", print_counter);
+      }
     }
-    else
-    {
-      printf("rmse: failure, %d\n", print_counter);
-    }
-    pub_surface_point_cloud.publish(point_cloud);
 
     //data_log << disparity_count << ", " << path_length << ", " << srv.response.rmse << "\n";
 
@@ -318,7 +336,7 @@ int main(int argc, char** argv) {
   ros::NodeHandle nh;
   image_transport::ImageTransport it(nh);
 
-  data_log.open ("jpp_log.txt");
+  //data_log.open ("jpp_log.txt");
 
   pub_path = nh.advertise<nav_msgs::Path>("/jackal/planned_path", 1);
   pub_surface_point_cloud = nh.advertise<sensor_msgs::PointCloud>("/jackal/surface", 1);
@@ -338,6 +356,7 @@ int main(int argc, char** argv) {
     { "jpp_config_file",'j',POPT_ARG_STRING,&jpp_config_file,0,"JPP config file name","STR" },
     { "output",'o',POPT_ARG_STRING,&output,0,"Output - astar, rrt, debug","STR" },
     { "visualize",'v',POPT_ARG_INT,&v,0,"Set v=1 for displaying visualizations","NUM" },
+    { "test accuracy",'t',POPT_ARG_INT,&t,0,"Set t=1 for testing the accuracy of the surface","NUM" },
     { "write_files",'w',POPT_ARG_INT,&w,0,"Set w=1 for writing visualizations to files","NUM" },
     { "dynamic_reconfigure",'d',POPT_ARG_INT,&d,0,"Set d=1 for enabling dynamic reconfigure","NUM" },
     POPT_AUTOHELP

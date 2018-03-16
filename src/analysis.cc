@@ -17,7 +17,7 @@ void compute_epipolar_costs() {
     for (int j = start_y; j < end_y; j++) {
       cout << i << ", " << j << endl;
       vector< double > costs = jpp->get_epipolar_costs(Point(i, j), max_disp);
-      for (int k = 0; k < costs.size(); k++) {
+      for (u_int k = 0; k < costs.size(); k++) {
         data_file << costs[k] << " ";
       }
       data_file << ((int)ground_truth_dmap.at<uchar>(j, i)) << endl;
