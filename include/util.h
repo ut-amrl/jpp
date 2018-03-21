@@ -29,6 +29,11 @@ struct JPP_Config {
   double SPATIAL_FILTER_RATIO;
   int CONF_NEG_INC;
   double CONF_NEG_FILTER_RATIO;
+  int Z_INC;
+  int SEARCH_RANGE;
+  double ZERR_WEIGHT;
+  int MEDIAN_FILTER_RANGE;
+  double ROUGHNESS_THRESH;
   int START_X;
   int MAX_X;
   int MAX_Y;
@@ -56,6 +61,11 @@ struct JPP_Config {
     config_lookup_float(cf, "spatial_filter_ratio", &SPATIAL_FILTER_RATIO);
     config_lookup_int(cf, "conf_neg_inc", &CONF_NEG_INC);
     config_lookup_float(cf, "conf_neg_filter_ratio", &CONF_NEG_FILTER_RATIO);
+    config_lookup_int(cf, "z_inc", &Z_INC);
+    config_lookup_int(cf, "search_range", &SEARCH_RANGE);
+    config_lookup_float(cf, "zerr_weight", &ZERR_WEIGHT);
+    config_lookup_int(cf, "median_filter_range", &MEDIAN_FILTER_RANGE);
+    config_lookup_float(cf, "roughness_thresh", &ROUGHNESS_THRESH);
     config_lookup_int(cf, "start_x", &START_X);
     config_lookup_int(cf, "max_x", &MAX_X);
     config_lookup_int(cf, "max_y", &MAX_Y);

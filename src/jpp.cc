@@ -239,11 +239,14 @@ pair< Mat, Mat > JPP::visualize_jpp(const char* outfile)
 {
   Mat vis_path = _stereo->get_img_left();
   cvtColor(vis_path, vis_path, CV_GRAY2BGR);
-  for (u_int i = 0; i < _path.size()-1; i++) {
-    Point p = _stereo->project_point_cam(Point3f(_path[i].x/1000.,_path[i].y/1000.,0),0);
-    Point q = _stereo->project_point_cam(Point3f(_path[i+1].x/1000.,_path[i+1].y/1000.,0),0);
-    Scalar green = Scalar(0, 255, 0);
-    line(vis_path, p, q, green, 2, 8 ,0);
+  if (!_path.empty())
+  {
+    for (u_int i = 0; i < _path.size()-1; i++) {
+      Point p = _stereo->project_point_cam(Point3f(_path[i].x/1000.,_path[i].y/1000.,0),0);
+      Point q = _stereo->project_point_cam(Point3f(_path[i+1].x/1000.,_path[i+1].y/1000.,0),0);
+      Scalar green = Scalar(0, 255, 0);
+      line(vis_path, p, q, green, 2, 8 ,0);
+    }
   }
   
   Mat confPos = _stereo->get_img_left();

@@ -122,7 +122,7 @@ void RRT::findPath(Stereo* stereo)
       // start obstacle check
       bool inObstacle = false;
       vector< Point > pts = getPointsInLine(qNearest->position, newConfig);
-      for (int i = 0; i < pts.size(); i++) {
+      for (u_int i = 0; i < pts.size(); i++) {
         if (!isBotClearOfObstacle(pts[i], stereo)) {
           inObstacle = true;
           break;
@@ -149,7 +149,7 @@ void RRT::findPath(Stereo* stereo)
 vector< Point > RRT::getPath()
 {
   vector< Point > ret;
-  for (int i = 0; i < path.size(); i++) {
+  for (u_int i = 0; i < path.size(); i++) {
     ret.push_back(path[i]->position);
   }
   return ret;
@@ -158,17 +158,20 @@ vector< Point > RRT::getPath()
 int RRT::getPathLength()
 {
   int length = 0;
-  for (int i = 0; i < path.size()-1; i++) {
-    Point p = path[i]->position;
-    Point q = path[i+1]->position;
-    length += norm(p-q);
+  if (!path.empty())
+  {
+    for (u_int i = 0; i < path.size()-1; i++) {
+      Point p = path[i]->position;
+      Point q = path[i+1]->position;
+      length += norm(p-q);
+    }
   }
   return length;
 }
 
 void RRT::freeMemory()
 {
-  for (int i = 0; i < nodes.size(); i++) {
+  for (u_int i = 0; i < nodes.size(); i++) {
     if (nodes[i] != NULL)
       delete nodes[i];
   }

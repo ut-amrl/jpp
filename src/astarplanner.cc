@@ -400,10 +400,13 @@ vector< Point > AStarPlanner::getPath()
 int AStarPlanner::getPathLength()
 {
   int length = 0;
-  for (u_int i = 0; i < path.size()-1; i++) {
-    Point p = path[i];
-    Point q = path[i+1];
-    length += norm(p-q);
+  if (!path.empty())
+  {
+    for (u_int i = 0; i < path.size()-1; i++) {
+      Point p = path[i];
+      Point q = path[i+1];
+      length += norm(p-q);
+    }
   }
   return length;
 }

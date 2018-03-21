@@ -40,25 +40,20 @@ private:
     bool valid;
     bool discovered;
     bool median_filtered;
-    bool layer_median_filtered;
     bool roughness_calculated;
     float z;
     float median_filtered_z;
-    float layer_median_filtered_z;
     float roughness;
     vector< confident_z > confident_Zvalues;
-    vector< confident_z > confident_Zvalues2;
     vector< pair< Point3f, float > > confpos;
-    _surface_p(bool v, bool d, bool mf, bool lmf, bool rc, float zed, float mfzed, float lmfzed, float r)
+    _surface_p(bool v, bool d, bool mf, bool rc, float zed, float mfzed, float r)
     {
       valid = v;
       discovered = d;
       median_filtered = mf;
-      layer_median_filtered = lmf;
       roughness_calculated = rc;
       z = zed;
       median_filtered_z = mfzed;
-      layer_median_filtered_z = lmfzed;
       roughness = r;
     }
     void insert_confident_z(confident_z cz)
@@ -92,7 +87,7 @@ private:
 
   vector< vector< surface_p > > surface;
 
-
+  //bool visualize;
 
   void _init_rectification_map(const FileStorage& fs);
   void _rectify_images(const Mat& left, const Mat& right);
@@ -108,6 +103,7 @@ public:
   int get_disparity_count();
   Point3f surface_point(int i, int j);
   void surface_index(const Point3f p, int *i, int *j);
+  bool inSurface(int ix, int iy);
   void load_images(const Mat& left, const Mat& right);
   bool in_img(int x, int y);
   Point project_point_cam(const Point3f p, int cam);
@@ -115,16 +111,12 @@ public:
   double desc_cost(Point left, Point right, int w);
   double desc_cost_SAD(Point left, Point right, int w);
   bool conf_positive(const Point3f p);
-  bool conf_positive(const Point3f p, float z_start, float z_end);
+  bool conf_negative(const Point3f p);
   bool find_surface(const Point3f p, float range);
   bool find_surface(int ix, int iy, float range);
   Point3f median_filter(int ix, int iy, int neighbor_window_size);
-  Point3f layer_median_filter(int ix, int iy, int neighbor_window_size);
   float roughness(Point3f p);
   float roughness(int ix, int iy);
-  bool conf_negative(const Point3f p);
-  void calc_z_range(const Point3f p, float *z_min, float *z_max);
-  bool orientation_valid(Eigen::MatrixXf *points);
   bool is_obstacle_free_region(const Point3f p);
   bool is_empty_col(const Point3f p);
   bool is_bot_clear(const Point3f p, float safe_radius, float inc, bool col_check);

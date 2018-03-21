@@ -112,6 +112,7 @@ void update_planned_path(vector< Point > path){
 
     real_path.poses.clear();
     real_path.poses.push_back(s_pose);
+
     ROS_INFO("real_path.poses[real_path.size()]: %f", real_path.poses[real_path.poses.size() - 1].pose.position.x);
   }
   else
@@ -325,6 +326,7 @@ void paramsCallback(jpp::ParamsConfig &conf, uint32_t level) {
   jpp_config.SPATIAL_FILTER_RATIO = conf.SPATIAL_FILTER_RATIO;
   jpp_config.CONF_NEG_INC = conf.CONF_NEG_INC;
   jpp_config.CONF_NEG_FILTER_RATIO = conf.CONF_NEG_FILTER_RATIO;
+  jpp_config.ROUGHNESS_THRESH = conf.ROUGHNESS_THRESH;
   jpp_config.START_X = conf.START_X;
   jpp_config.MAX_X = conf.MAX_X;
   jpp_config.MAX_Y = conf.MAX_Y;
