@@ -136,6 +136,8 @@ $ ./bin/jpp -n 158 -d AMRL/ -c calibration/amrl_jackal_webcam_stereo.yml -j cfg/
 |:------------------------------:|:-------------------------:|
 |![](dumps/rrt73-vis.jpg)        | ![](dumps/rrt73-path.jpg) |
 
+**Note:** Press any key to move on to the next image pair.
+
 ### 3. Running JPP ROS
 
 Run the ROS node `navigation`:
